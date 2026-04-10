@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
+import { writeAuditLog } from "../utils/auditLogger.js";
 
 // Normalize role to proper case
 const normalizeRole = (role) => {
@@ -77,6 +78,7 @@ export const updateUserRole = async (req, res) => {
       { new: true }
     ).select("-password");
     if (!user) return res.status(404).json({ error: "User not found" });
+    await writeAuditLog(req.user, "UPDATE_USER_ROLE", "User", user._id, { targetUsername: user.username, newRole: role }, req.ip);
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });

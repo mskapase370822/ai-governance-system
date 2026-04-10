@@ -1,0 +1,25 @@
+# ── Secrets / environment files ───────────────────────────────────────────────
+backend/.env
+frontend/.env
+frontend/.env.local
+**/.env.local
+**/.env.production
+
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+**/node_modules/
+
+# ── Build output ──────────────────────────────────────────────────────────────
+frontend/dist/
+frontend/dist-ssr/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+backend/error.log
+
+# ── OS / editor ───────────────────────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.suo
+*.sw?

@@ -1,5 +1,6 @@
 import ApprovalRequest from "../models/ApprovalRequest.js";
 import Log from "../models/Log.js";
+import { writeAuditLog } from "../utils/auditLogger.js";
 
 /**
  * Get pending approvals (Admin only)
@@ -89,6 +90,7 @@ export const approveRequest = async (req, res) => {
       });
     }
 
+    await writeAuditLog(req.user, "APPROVE_APPROVAL", "ApprovalRequest", approval._id, { requestedBy: approval.requestedByUsername, reviewNote: reviewNote || "" }, req.ip);
     res.json({ message: "Request approved", approval });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -135,6 +137,7 @@ export const denyRequest = async (req, res) => {
       });
     }
 
+    await writeAuditLog(req.user, "DENY_APPROVAL", "ApprovalRequest", approval._id, { requestedBy: approval.requestedByUsername, reviewNote: reviewNote || "" }, req.ip);
     res.json({ message: "Request denied", approval });
   } catch (err) {
     res.status(500).json({ error: err.message });

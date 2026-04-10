@@ -1,4 +1,5 @@
 import Policy from "../models/Policy.js";
+import { writeAuditLog } from "../utils/auditLogger.js";
 
 /**
  * Get all policies
@@ -36,6 +37,7 @@ export const createPolicy = async (req, res) => {
       ...req.body,
       createdBy: req.user._id,
     });
+    await writeAuditLog(req.user, "CREATE_POLICY", "Policy", policy._id, { name: policy.name }, req.ip);
     res.status(201).json(policy);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -53,6 +55,7 @@ export const updatePolicy = async (req, res) => {
       { new: true }
     );
     if (!policy) return res.status(404).json({ error: "Policy not found" });
+    await writeAuditLog(req.user, "UPDATE_POLICY", "Policy", policy._id, { name: policy.name }, req.ip);
     res.json(policy);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -69,6 +72,7 @@ export const togglePolicy = async (req, res) => {
     policy.isActive = !policy.isActive;
     policy.updatedAt = Date.now();
     await policy.save();
+    await writeAuditLog(req.user, "TOGGLE_POLICY", "Policy", policy._id, { name: policy.name, isActive: policy.isActive }, req.ip);
     res.json(policy);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -82,6 +86,7 @@ export const deletePolicy = async (req, res) => {
   try {
     const policy = await Policy.findByIdAndDelete(req.params.id);
     if (!policy) return res.status(404).json({ error: "Policy not found" });
+    await writeAuditLog(req.user, "DELETE_POLICY", "Policy", req.params.id, { name: policy.name }, req.ip);
     res.json({ message: "Policy deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
