@@ -7,10 +7,7 @@ import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ActivityMonitoring from "./pages/ActivityMonitoring";
-import AdminActivityDashboard from "./pages/AdminActivityDashboard";
-import AdminEmailSettings from "./pages/AdminEmailSettings";
 import AdminReportsPage from "./pages/AdminReportsPage";
-import AdminSystemHealth from "./pages/AdminSystemHealth";
 
 function App() {
   return (
@@ -51,41 +48,11 @@ function App() {
               }
             />
             <Route
-              path="/admin/activities"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminActivityDashboard />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/admin/reports"
               element={
                 <ProtectedRoute allowedRoles={["Admin"]}>
                   <ErrorBoundary>
                     <AdminReportsPage />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/health"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminSystemHealth />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/email-settings"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminEmailSettings />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }

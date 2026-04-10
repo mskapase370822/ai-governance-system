@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield, Activity, BarChart2, FileText, Heart, Mail } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, FileText } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -52,36 +52,12 @@ export function Navbar() {
           {role === "admin" && (
             <>
               <button
-                className={`btn btn-ghost btn-sm${location.pathname === "/admin/activities" ? " active" : ""}`}
-                onClick={() => { navigate("/admin/activities"); setMobileOpen(false); }}
-                title="Activity Dashboard"
-              >
-                <BarChart2 size={15} />
-                <span className="navbar-link-label">Activity Dashboard</span>
-              </button>
-              <button
                 className={`btn btn-ghost btn-sm${location.pathname === "/admin/reports" ? " active" : ""}`}
                 onClick={() => { navigate("/admin/reports"); setMobileOpen(false); }}
                 title="Reports"
               >
                 <FileText size={15} />
                 <span className="navbar-link-label">Reports</span>
-              </button>
-              <button
-                className={`btn btn-ghost btn-sm${location.pathname === "/admin/health" ? " active" : ""}`}
-                onClick={() => { navigate("/admin/health"); setMobileOpen(false); }}
-                title="System Health"
-              >
-                <Heart size={15} />
-                <span className="navbar-link-label">System Health</span>
-              </button>
-              <button
-                className={`btn btn-ghost btn-sm${location.pathname === "/admin/email-settings" ? " active" : ""}`}
-                onClick={() => { navigate("/admin/email-settings"); setMobileOpen(false); }}
-                title="Email Settings"
-              >
-                <Mail size={15} />
-                <span className="navbar-link-label">Email Settings</span>
               </button>
             </>
           )}

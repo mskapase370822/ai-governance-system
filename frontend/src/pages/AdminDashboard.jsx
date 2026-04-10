@@ -5,13 +5,23 @@ import { LogTable } from "../components/LogTable";
 import { AlertToast } from "../components/AlertToast";
 import { ApprovalPanel } from "../components/ApprovalPanel";
 import { PolicyManager } from "../components/PolicyManager";
+import { ActivityTable } from "../components/ActivityTable";
+import { RiskFilter } from "../components/RiskFilter";
+import RiskTrendChart from "../components/Charts/RiskTrendChart";
+import RiskDistributionChart from "../components/Charts/RiskDistributionChart";
+import UserActivityChart from "../components/Charts/UserActivityChart";
+import DailyActivityChart from "../components/Charts/DailyActivityChart";
+import RiskScoreHeatmap from "../components/Charts/RiskScoreHeatmap";
 import {
   FileText, ShieldAlert, Users, Activity, AlertTriangle,
   BarChart3, Bell, CheckCircle, Clock, Shield, XCircle, Zap,
+  Brain, Flag, ShieldOff,
 } from "lucide-react";
 import {
   getDashboardStatsAPI, getAllLogsAPI, getPendingApprovalsAPI,
   getPoliciesAPI, getAlertsAPI,
+  getAllActivitiesAPI, getFilteredActivitiesAPI, getActivityStatsAPI,
+  getActivityChartStatsAPI, analyzeRiskAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
 import {
@@ -20,11 +30,20 @@ import {
 } from "recharts";
 
 const TABS = [
-  { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "logs", label: "Audit Logs", icon: FileText },
-  { id: "approvals", label: "Approvals", icon: CheckCircle },
-  { id: "alerts", label: "Alerts", icon: Bell },
-  { id: "policies", label: "Policies", icon: Shield },
+  { id: "overview",    label: "Overview",    icon: BarChart3   },
+  { id: "logs",        label: "Audit Logs",  icon: FileText    },
+  { id: "approvals",   label: "Approvals",   icon: CheckCircle },
+  { id: "alerts",      label: "Alerts",      icon: Bell        },
+  { id: "policies",    label: "Policies",    icon: Shield      },
+  { id: "ai_risk",     label: "AI Risk",     icon: Brain       },
+  { id: "activities",  label: "Activities",  icon: Activity    },
+];
+
+const EMPTY_ACTIVITY_FILTERS = { riskLevel: "all", status: "all", search: "", startDate: "", endDate: "" };
+const RANGE_OPTIONS = [
+  { label: "7 days",  value: 7  },
+  { label: "30 days", value: 30 },
+  { label: "90 days", value: 90 },
 ];
 
 export default function AdminDashboard() {
@@ -40,6 +59,22 @@ export default function AdminDashboard() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [unreadAlerts, setUnreadAlerts] = useState(0);
+
+  // Activities tab state
+  const [activities, setActivities] = useState([]);
+  const [activityPagination, setActivityPagination] = useState(null);
+  const [activityFilters, setActivityFilters] = useState(EMPTY_ACTIVITY_FILTERS);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityStats, setActivityStats] = useState(null);
+  const [activityChartData, setActivityChartData] = useState(null);
+  const [activityDateRange, setActivityDateRange] = useState(30);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  // AI Risk tab state
+  const [analyzeText, setAnalyzeText] = useState("");
+  const [analyzeResult, setAnalyzeResult] = useState(null);
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState("");
 
   const fetchStats = useCallback(async () => {
     try {
@@ -94,13 +129,60 @@ export default function AdminDashboard() {
     }
   }, []);
 
+  // Activities fetch
+  const fetchActivities = useCallback(async (currentPage = 1, currentFilters = EMPTY_ACTIVITY_FILTERS) => {
+    try {
+      setActivityLoading(true);
+      const hasFilter = Object.entries(currentFilters).some(
+        ([k, v]) => v && ((k === "riskLevel" || k === "status") ? v !== "all" : true)
+      );
+      const res = hasFilter
+        ? await getFilteredActivitiesAPI({ ...currentFilters, page: currentPage, limit: 20 })
+        : await getAllActivitiesAPI(currentPage, 20);
+      setActivities(res.data.activities || []);
+      setActivityPagination(res.data.pagination || null);
+    } catch (err) {
+      console.error("Failed to fetch activities:", err);
+    } finally {
+      setActivityLoading(false);
+    }
+  }, []);
+
+  const fetchActivityStats = useCallback(async () => {
+    try {
+      const res = await getActivityStatsAPI();
+      setActivityStats(res.data);
+    } catch (err) {
+      console.error("Failed to fetch activity stats:", err);
+    }
+  }, []);
+
+  const fetchActivityChartData = useCallback(async (days) => {
+    try {
+      const res = await getActivityChartStatsAPI(days);
+      setActivityChartData(res.data);
+    } catch (err) {
+      console.error("Failed to fetch activity chart data:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchLogs();
     fetchApprovals();
     fetchPolicies();
     fetchAlerts();
-  }, [fetchStats, fetchLogs, fetchApprovals, fetchPolicies, fetchAlerts]);
+    fetchActivityStats();
+    fetchActivityChartData(30);
+  }, [fetchStats, fetchLogs, fetchApprovals, fetchPolicies, fetchAlerts, fetchActivityStats, fetchActivityChartData]);
+
+  useEffect(() => {
+    fetchActivities(activityPage, activityFilters);
+  }, [activityPage, activityFilters, fetchActivities]);
+
+  useEffect(() => {
+    fetchActivityChartData(activityDateRange);
+  }, [activityDateRange, fetchActivityChartData]);
 
   // WebSocket for real-time alerts
   useEffect(() => {
@@ -110,11 +192,17 @@ export default function AdminDashboard() {
     const socket = initializeSocket(token);
 
     socket.on("risk_alert", (data) => {
-      const alertData = { ...data, id: Date.now() };
+      const alertData = { ...data, id: Date.now() + Math.random() };
       setToasts((prev) => [...prev, alertData]);
       setAlertHistory((prev) => [alertData, ...prev].slice(0, 50));
       setUnreadAlerts((prev) => prev + 1);
       fetchStats();
+    });
+
+    socket.on("activity_alert", (data) => {
+      const alertData = { ...data, id: Date.now() + Math.random() };
+      setToasts((prev) => [...prev, alertData]);
+      fetchActivityStats();
     });
 
     socket.on("approval_request", () => {
@@ -127,10 +215,26 @@ export default function AdminDashboard() {
     });
 
     return () => disconnectSocket();
-  }, [fetchStats, fetchApprovals, fetchLogs]);
+  }, [fetchStats, fetchApprovals, fetchLogs, fetchActivityStats]);
 
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const handleAnalyzeRisk = async (e) => {
+    e.preventDefault();
+    if (!analyzeText.trim()) return;
+    setAnalyzeLoading(true);
+    setAnalyzeResult(null);
+    setAnalyzeError("");
+    try {
+      const res = await analyzeRiskAPI(analyzeText.trim());
+      setAnalyzeResult(res.data);
+    } catch (err) {
+      setAnalyzeError(err.response?.data?.error || "Analysis failed. Please try again.");
+    } finally {
+      setAnalyzeLoading(false);
+    }
   };
 
   // Chart data
@@ -394,27 +498,34 @@ export default function AdminDashboard() {
                   <p>No alerts yet. Monitoring in real-time...</p>
                 </div>
               ) : (
-                alertHistory.map((alert, i) => (
-                  <div key={alert._id || alert.id || i} className={`alert-panel-item ${alert.isAnomaly ? "alert-anomaly" : ""}`}>
-                    <div className={`alert-dot ${alert.riskLevel === "HIGH" ? "" : "alert-dot-medium"}`} />
-                    <div className="alert-text">
-                      <strong>{alert.username || alert.user || "Unknown"}</strong>
-                      {" — "}
-                      <span style={{ color: alert.riskLevel === "HIGH" ? "var(--risk-high)" : "var(--risk-medium)" }}>
-                        {alert.riskLevel}
-                      </span>
-                      {" risk"}
-                      {alert.isAnomaly && <span className="anomaly-flag" style={{ marginLeft: 8 }}><Zap size={12} /> Anomaly</span>}
-                      {alert.reason ? <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "0.78rem" }}>{alert.reason}</div> : ""}
-                      <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
-                        {alert.action?.substring(0, 100)}
+                alertHistory.map((alert, i) => {
+                  const severityColor =
+                    alert.riskLevel === "CRITICAL" ? "#dc2626" :
+                    alert.riskLevel === "HIGH"     ? "var(--risk-high)" :
+                    alert.riskLevel === "MEDIUM"   ? "var(--risk-medium)" :
+                                                     "var(--risk-low)";
+                  return (
+                    <div key={alert._id || alert.id || i} className={`alert-panel-item ${alert.isAnomaly ? "alert-anomaly" : ""}`}>
+                      <div className={`alert-dot ${["HIGH","CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
+                      <div className="alert-text">
+                        <strong>{alert.username || alert.user || "Unknown"}</strong>
+                        {" — "}
+                        <span style={{ color: severityColor, fontWeight: 600 }}>
+                          {alert.riskLevel}
+                        </span>
+                        {" risk"}
+                        {alert.isAnomaly && <span className="anomaly-flag" style={{ marginLeft: 8 }}><Zap size={12} /> Anomaly</span>}
+                        {alert.reason ? <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "0.78rem" }}>{alert.reason}</div> : ""}
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
+                          {alert.action?.substring(0, 100)}
+                        </div>
+                        <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
+                          {alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "Just now"}
+                        </span>
                       </div>
-                      <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
-                        {alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "Just now"}
-                      </span>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -431,6 +542,168 @@ export default function AdminDashboard() {
               policies={policies}
               onUpdate={fetchPolicies}
             />
+          </div>
+        )}
+
+        {/* === AI RISK TAB === */}
+        {activeTab === "ai_risk" && (
+          <div>
+            <div className="card" style={{ marginBottom: 24 }}>
+              <div className="card-title" style={{ marginBottom: 16 }}>
+                <Brain size={18} />
+                AI-Based Risk Classifier
+              </div>
+              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
+                Enter any action or prompt to get an instant AI risk classification with confidence score and reason.
+              </p>
+              <form onSubmit={handleAnalyzeRisk}>
+                <textarea
+                  className="textarea"
+                  rows={4}
+                  placeholder="e.g. DROP TABLE users; or export all customer data to external server..."
+                  value={analyzeText}
+                  onChange={(e) => setAnalyzeText(e.target.value)}
+                  style={{ marginBottom: 12 }}
+                />
+                {analyzeError && (
+                  <div className="login-error" style={{ marginBottom: 12 }}>{analyzeError}</div>
+                )}
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={analyzeLoading || !analyzeText.trim()}
+                >
+                  {analyzeLoading ? <div className="spinner" /> : <Brain size={15} />}
+                  Analyze Risk
+                </button>
+              </form>
+            </div>
+
+            {analyzeResult && (
+              <div className="card">
+                <div className="card-title" style={{ marginBottom: 16 }}>
+                  <Zap size={18} />
+                  Analysis Result
+                </div>
+                <div style={{ display: "grid", gap: 16 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 140 }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Risk Level</div>
+                      <div style={{
+                        fontSize: "1.6rem", fontWeight: 700,
+                        color: analyzeResult.risk === "high" ? "var(--risk-high)" :
+                               analyzeResult.risk === "medium" ? "var(--risk-medium)" : "var(--risk-low)",
+                        textTransform: "uppercase",
+                      }}>
+                        {analyzeResult.risk}
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 140 }}>
+                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Confidence Score</div>
+                      <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                        {(analyzeResult.score * 100).toFixed(0)}%
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reason</div>
+                    <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, fontSize: "0.9rem" }}>{analyzeResult.reason}</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => { setAnalyzeText(""); setAnalyzeResult(null); }}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* === ACTIVITIES TAB === */}
+        {activeTab === "activities" && (
+          <div>
+            {/* Activity Stats */}
+            <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", marginBottom: 16 }}>
+              <StatsCard title="Total"     value={activityStats?.total      || 0} icon={FileText}    color="blue"   />
+              <StatsCard title="High Risk" value={activityStats?.highRisk   || 0} icon={ShieldAlert}  color="red"    />
+              <StatsCard title="Medium"    value={activityStats?.mediumRisk  || 0} icon={AlertTriangle} color="yellow" />
+              <StatsCard title="Flagged"   value={activityStats?.flagged    || 0} icon={Flag}          color="yellow" />
+              <StatsCard title="Blocked"   value={activityStats?.blocked    || 0} icon={ShieldOff}     color="red"    />
+            </div>
+
+            {/* Chart date-range selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Chart range:</span>
+              {RANGE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  className={`btn btn-sm ${activityDateRange === opt.value ? "btn-primary" : "btn-ghost"}`}
+                  onClick={() => setActivityDateRange(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Charts */}
+            <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
+              <div className="card" style={{ padding: 20 }}>
+                <RiskTrendChart data={activityChartData?.trend || []} />
+              </div>
+              <div className="card" style={{ padding: 20 }}>
+                <RiskDistributionChart
+                  data={activityChartData?.distribution || []}
+                  onFilter={(level) => setActivityFilters((f) => ({ ...f, riskLevel: level }))}
+                />
+              </div>
+            </div>
+            <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
+              <div className="card" style={{ padding: 20 }}>
+                <DailyActivityChart data={activityChartData?.trend || []} />
+              </div>
+              <div className="card" style={{ padding: 20 }}>
+                <UserActivityChart data={activityChartData?.topUsers || []} />
+              </div>
+            </div>
+            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
+              <RiskScoreHeatmap data={activityChartData?.heatmap || []} />
+            </div>
+
+            {/* Activity Table */}
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              <div className="card-header" style={{ padding: "20px 24px", marginBottom: 0, borderBottom: "1px solid var(--border-subtle)" }}>
+                <div className="card-title">
+                  <Activity size={18} />
+                  All User Activities
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => fetchActivities(activityPage, activityFilters)}>
+                  Refresh
+                </button>
+              </div>
+              <div style={{ padding: "16px 24px 0" }}>
+                <RiskFilter
+                  filters={activityFilters}
+                  onFilterChange={(updated) => { setActivityFilters(updated); setActivityPage(1); }}
+                  onClear={() => { setActivityFilters(EMPTY_ACTIVITY_FILTERS); setActivityPage(1); }}
+                />
+              </div>
+              {activityLoading ? (
+                <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+                  <div className="spinner spinner-lg" />
+                </div>
+              ) : (
+                <div style={{ padding: "0 0 8px" }}>
+                  <ActivityTable
+                    activities={activities}
+                    isAdmin={true}
+                    pagination={activityPagination}
+                    onPageChange={(p) => setActivityPage(p)}
+                    onUpdate={() => { fetchActivities(activityPage, activityFilters); fetchActivityStats(); }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

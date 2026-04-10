@@ -5,7 +5,7 @@ const alertSchema = new mongoose.Schema({
   username: { type: String },
   userRole: { type: String },
   action: { type: String },
-  riskLevel: { type: String, enum: ["LOW", "MEDIUM", "HIGH"] },
+  riskLevel: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
   confidence: { type: Number },
   reason: { type: String },
   type: {

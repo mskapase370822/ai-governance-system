@@ -194,12 +194,16 @@ export const submitAction = async (req, res) => {
 
     // === Generate Alerts for Medium/High risk ===
     if (combinedRisk.riskLevel === "HIGH" || combinedRisk.riskLevel === "MEDIUM") {
+      // Upgrade to CRITICAL when a HIGH-risk anomaly is detected
+      const alertSeverity =
+        combinedRisk.riskLevel === "HIGH" && anomaly.isAnomaly ? "CRITICAL" : combinedRisk.riskLevel;
+
       const alert = await Alert.create({
         userId: user._id,
         username: user.username,
         userRole: user.role,
         action: trimmedAction.substring(0, 200),
-        riskLevel: combinedRisk.riskLevel,
+        riskLevel: alertSeverity,
         confidence: combinedRisk.confidence,
         reason: combinedRisk.reason,
         type: anomaly.isAnomaly ? "anomaly_alert" : "risk_alert",
@@ -214,7 +218,7 @@ export const submitAction = async (req, res) => {
           user: user.username,
           userRole: user.role,
           action: trimmedAction.substring(0, 100),
-          riskLevel: combinedRisk.riskLevel,
+          riskLevel: alertSeverity,
           confidence: combinedRisk.confidence,
           reason: combinedRisk.reason,
           status: log.status,
