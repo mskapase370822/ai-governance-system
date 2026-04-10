@@ -17,6 +17,15 @@ const loginLimiter = rateLimit({
   message: { error: "Too many login attempts. Please try again in 15 minutes." },
 });
 
+// Rate limit: max 5 registrations per hour per IP
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many registration attempts. Please try again in an hour." },
+});
+
 // Validation rules for registration
 const registerValidation = [
   body("username")
@@ -34,7 +43,7 @@ const registerValidation = [
     .withMessage("Password must contain at least one number"),
 ];
 
-router.post("/register", registerValidation, validateRequest, registerUser);
+router.post("/register", registerLimiter, registerValidation, validateRequest, registerUser);
 router.post("/login", loginLimiter, loginUser);
 router.get("/users", apiLimiter, protect, adminOnly, getUsers);
 router.put("/users/:id/role", apiLimiter, protect, adminOnly, updateUserRole);
