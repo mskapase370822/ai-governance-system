@@ -62,4 +62,17 @@ export const denyRequestAPI = (id, note) => API.put(`/approvals/${id}/deny`, { r
 export const getDashboardStatsAPI = () => API.get("/analytics/dashboard");
 export const getUserStatsAPI = () => API.get("/analytics/me");
 
+// User Activity Monitoring
+export const submitActivityAPI = (inputText) => API.post("/activity/submit", { inputText });
+export const getMyActivitiesAPI = (page = 1, limit = 20) =>
+  API.get("/activity/me", { params: { page, limit } });
+export const getAllActivitiesAPI = (page = 1, limit = 20) =>
+  API.get("/activity/all", { params: { page, limit } });
+export const getFilteredActivitiesAPI = (filters) =>
+  API.get("/activity/filter", { params: filters });
+export const flagActivityAPI = (id, reason) => API.put(`/activity/${id}/flag`, { reason });
+export const approveActivityAPI = (id) => API.put(`/activity/${id}/approve`);
+export const blockActivityAPI = (id) => API.put(`/activity/${id}/block`);
+export const getActivityStatsAPI = () => API.get("/activity/stats/dashboard");
+
 export default API;

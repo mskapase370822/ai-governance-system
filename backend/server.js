@@ -13,6 +13,7 @@ import alertRoutes from "./routes/alertRoutes.js";
 import policyRoutes from "./routes/policyRoutes.js";
 import approvalRoutes from "./routes/approvalRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -50,6 +51,7 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/policies", policyRoutes);
 app.use("/api/approvals", approvalRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/activity", activityRoutes);
 
 // Health check
 app.get("/", (req, res) => {
