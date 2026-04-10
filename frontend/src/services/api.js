@@ -1,0 +1,65 @@
+import axios from "axios";
+
+const API = axios.create({
+  baseURL: "http://localhost:5000/api",
+});
+
+API.interceptors.request.use((req) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    req.headers.Authorization = `Bearer ${token}`;
+  }
+  return req;
+});
+
+// Auto-logout on 401 (expired/invalid token)
+API.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem("token");
+      window.location.href = "/";
+    }
+    return Promise.reject(err);
+  }
+);
+
+// Auth
+export const loginAPI = (data) => API.post("/auth/login", data);
+export const registerAPI = (data) => API.post("/auth/register", data);
+export const getUsersAPI = () => API.get("/auth/users");
+export const updateUserRoleAPI = (id, role) => API.put(`/auth/users/${id}/role`, { role });
+
+// Actions
+export const submitActionAPI = (data) => API.post("/actions/submit", data);
+export const confirmActionAPI = (logId) => API.put(`/actions/confirm/${logId}`);
+
+// Logs
+export const getMyLogsAPI = (params) => API.get("/logs/me", { params });
+export const getAllLogsAPI = (params) => API.get("/logs", { params });
+export const getAnomalyLogsAPI = () => API.get("/logs/anomalies");
+
+// Alerts
+export const getAlertsAPI = (params) => API.get("/alerts", { params });
+export const markAlertReadAPI = (id) => API.put(`/alerts/${id}/read`);
+export const markAllAlertsReadAPI = () => API.put("/alerts/read-all");
+
+// Policies
+export const getPoliciesAPI = () => API.get("/policies");
+export const createPolicyAPI = (data) => API.post("/policies", data);
+export const updatePolicyAPI = (id, data) => API.put(`/policies/${id}`, data);
+export const togglePolicyAPI = (id) => API.put(`/policies/${id}/toggle`);
+export const deletePolicyAPI = (id) => API.delete(`/policies/${id}`);
+
+// Approvals
+export const getPendingApprovalsAPI = () => API.get("/approvals/pending");
+export const getAllApprovalsAPI = (params) => API.get("/approvals/all", { params });
+export const getMyApprovalsAPI = () => API.get("/approvals/me");
+export const approveRequestAPI = (id, note) => API.put(`/approvals/${id}/approve`, { reviewNote: note });
+export const denyRequestAPI = (id, note) => API.put(`/approvals/${id}/deny`, { reviewNote: note });
+
+// Analytics
+export const getDashboardStatsAPI = () => API.get("/analytics/dashboard");
+export const getUserStatsAPI = () => API.get("/analytics/me");
+
+export default API;
