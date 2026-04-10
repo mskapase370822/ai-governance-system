@@ -268,6 +268,92 @@ export const getFilteredActivities = async (req, res) => {
 };
 
 /**
+ * GET /api/activity/stats/charts
+ * Admin: chart-ready data (trend, distribution, top users, heatmap).
+ * Query: ?days=30
+ */
+export const getChartStats = async (req, res) => {
+  try {
+    const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    // Daily breakdown
+    const dailyRaw = await UserActivity.aggregate([
+      { $match: { timestamp: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          HIGH:   { $sum: { $cond: [{ $eq: ["$riskLevel", "HIGH"] },   1, 0] } },
+          MEDIUM: { $sum: { $cond: [{ $eq: ["$riskLevel", "MEDIUM"] }, 1, 0] } },
+          LOW:    { $sum: { $cond: [{ $eq: ["$riskLevel", "LOW"] },    1, 0] } },
+          total:  { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const dailyMap = Object.fromEntries(dailyRaw.map((d) => [d._id, d]));
+    const trend = [];
+    const heatmap = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().split("T")[0];
+      const label = d.toLocaleDateString("en-US", { month: "short", day: "2-digit" });
+      const e = dailyMap[key] || { HIGH: 0, MEDIUM: 0, LOW: 0, total: 0 };
+      trend.push({ date: label, HIGH: e.HIGH, MEDIUM: e.MEDIUM, LOW: e.LOW });
+      heatmap.push({ date: key, count: e.total, highRisk: e.HIGH });
+    }
+
+    // Risk distribution totals
+    const [highCount, mediumCount, lowCount] = await Promise.all([
+      UserActivity.countDocuments({ riskLevel: "HIGH" }),
+      UserActivity.countDocuments({ riskLevel: "MEDIUM" }),
+      UserActivity.countDocuments({ riskLevel: "LOW" }),
+    ]);
+    const distribution = [
+      { name: "HIGH",   value: highCount },
+      { name: "MEDIUM", value: mediumCount },
+      { name: "LOW",    value: lowCount },
+    ];
+
+    // Top users by activity count
+    const topUsers = await UserActivity.aggregate([
+      {
+        $group: {
+          _id: "$userId",
+          count:      { $sum: 1 },
+          highRisk:   { $sum: { $cond: [{ $eq: ["$riskLevel", "HIGH"] },   1, 0] } },
+          mediumRisk: { $sum: { $cond: [{ $eq: ["$riskLevel", "MEDIUM"] }, 1, 0] } },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmpty: true } },
+      {
+        $project: {
+          username:   { $ifNull: ["$user.username", "Unknown"] },
+          count:      1,
+          highRisk:   1,
+          mediumRisk: 1,
+        },
+      },
+    ]);
+
+    res.json({ trend, distribution, topUsers, heatmap });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
  * GET /api/activity/stats/dashboard
  * Admin: get risk statistics for the dashboard.
  */

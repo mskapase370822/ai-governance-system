@@ -9,6 +9,7 @@ import {
   blockActivity,
   getFilteredActivities,
   getStatistics,
+  getChartStats,
 } from "../controllers/activityController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -19,6 +20,7 @@ router.post("/submit", protect, submitActivity);
 router.get("/me", protect, getMyActivities);
 
 // Admin-only routes — specific paths must come before /:id
+router.get("/stats/charts", protect, adminOnly, getChartStats);
 router.get("/stats/dashboard", protect, adminOnly, getStatistics);
 router.get("/filter", protect, adminOnly, getFilteredActivities);
 router.get("/all", protect, adminOnly, getAllActivities);

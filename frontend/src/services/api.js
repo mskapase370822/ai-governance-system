@@ -74,5 +74,18 @@ export const flagActivityAPI = (id, reason) => API.put(`/activity/${id}/flag`, {
 export const approveActivityAPI = (id) => API.put(`/activity/${id}/approve`);
 export const blockActivityAPI = (id) => API.put(`/activity/${id}/block`);
 export const getActivityStatsAPI = () => API.get("/activity/stats/dashboard");
+export const getActivityChartStatsAPI = (days = 30) =>
+  API.get("/activity/stats/charts", { params: { days } });
+
+// Reports
+export const exportReportAPI = (params) =>
+  API.post("/reports/export", null, { params, responseType: "blob" });
+
+// Metrics / System Health
+export const getSystemMetricsAPI = () => API.get("/metrics/all");
+
+// ML Model
+export const getMLStatsAPI  = () => API.get("/ml/stats");
+export const trainMLModelAPI = (options = {}) => API.post("/ml/train", options);
 
 export default API;
