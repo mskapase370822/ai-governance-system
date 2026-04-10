@@ -34,7 +34,8 @@ export function SessionExpiryWarning() {
       }
       if (remaining <= WARN_BEFORE_MS) {
         setMinutesLeft(Math.ceil(remaining / 60_000));
-        setDismissed(false); // re-show if it was dismissed and time is still running down
+        // Do not reset `dismissed` — once the user dismisses the toast,
+        // auto-logout on expiry is still handled by the interval above.
       } else {
         setMinutesLeft(null);
       }

@@ -1,4 +1,5 @@
 import AuditLog from "../models/AuditLog.js";
+import mongoose from "mongoose";
 
 /**
  * GET /api/audit
@@ -11,9 +12,14 @@ export const getAuditLogs = async (req, res) => {
     const skip  = (page - 1) * limit;
 
     const query = {};
-    if (req.query.action) query.action = req.query.action;
-    if (req.query.entity) query.entity = req.query.entity;
-    if (req.query.actorId) query["actor.id"] = req.query.actorId;
+    if (req.query.action) query.action = String(req.query.action).substring(0, 64);
+    if (req.query.entity) query.entity = String(req.query.entity).substring(0, 64);
+    if (req.query.actorId) {
+      if (!mongoose.Types.ObjectId.isValid(req.query.actorId)) {
+        return res.status(400).json({ error: "Invalid actorId format" });
+      }
+      query["actor.id"] = new mongoose.Types.ObjectId(req.query.actorId);
+    }
 
     const [logs, total] = await Promise.all([
       AuditLog.find(query).sort({ timestamp: -1 }).skip(skip).limit(limit),

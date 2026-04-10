@@ -4,6 +4,7 @@ import { body } from "express-validator";
 import { registerUser, loginUser, getUsers, updateUserRole } from "../controllers/authController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 import { validateRequest } from "../middleware/validateRequest.js";
+import { apiLimiter } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ const registerValidation = [
 
 router.post("/register", registerValidation, validateRequest, registerUser);
 router.post("/login", loginLimiter, loginUser);
-router.get("/users", protect, adminOnly, getUsers);
-router.put("/users/:id/role", protect, adminOnly, updateUserRole);
+router.get("/users", apiLimiter, protect, adminOnly, getUsers);
+router.put("/users/:id/role", apiLimiter, protect, adminOnly, updateUserRole);
 
 export default router;
