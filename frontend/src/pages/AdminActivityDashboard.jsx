@@ -4,15 +4,26 @@ import { ActivityTable } from "../components/ActivityTable";
 import { RiskFilter } from "../components/RiskFilter";
 import { StatsCard } from "../components/StatsCard";
 import { AlertToast } from "../components/AlertToast";
-import { FileText, ShieldAlert, AlertTriangle, ShieldCheck, Flag, ShieldOff } from "lucide-react";
+import { RiskTrendChart } from "../components/Charts/RiskTrendChart";
+import { RiskDistributionChart } from "../components/Charts/RiskDistributionChart";
+import { DailyActivityChart } from "../components/Charts/DailyActivityChart";
+import { UserActivityChart } from "../components/Charts/UserActivityChart";
+import { FileText, ShieldAlert, AlertTriangle, ShieldCheck, Flag, ShieldOff, BarChart2, ChevronDown } from "lucide-react";
 import {
   getAllActivitiesAPI,
   getFilteredActivitiesAPI,
   getActivityStatsAPI,
+  getRiskTrendAPI,
+  getTopUsersAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
 
 const EMPTY_FILTERS = { riskLevel: "all", status: "all", search: "", startDate: "", endDate: "" };
+const DATE_RANGES = [
+  { label: "7 Days", value: 7 },
+  { label: "30 Days", value: 30 },
+  { label: "90 Days", value: 90 },
+];
 
 export default function AdminActivityDashboard() {
   const [activities, setActivities] = useState([]);
@@ -22,6 +33,10 @@ export default function AdminActivityDashboard() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [toasts, setToasts] = useState([]);
+  const [trendData, setTrendData] = useState([]);
+  const [topUsers, setTopUsers] = useState([]);
+  const [chartDays, setChartDays] = useState(30);
+  const [showCharts, setShowCharts] = useState(true);
 
   const isFiltered = Object.entries(filters).some(
     ([k, v]) => v && ((k === "riskLevel" || k === "status") ? v !== "all" : true)
@@ -58,6 +73,19 @@ export default function AdminActivityDashboard() {
     }
   }, []);
 
+  const fetchChartData = useCallback(async (days) => {
+    try {
+      const [trendRes, usersRes] = await Promise.all([
+        getRiskTrendAPI(days),
+        getTopUsersAPI(),
+      ]);
+      setTrendData(trendRes.data || []);
+      setTopUsers(usersRes.data || []);
+    } catch (err) {
+      console.error("Failed to fetch chart data:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
   }, [fetchStats]);
@@ -65,6 +93,10 @@ export default function AdminActivityDashboard() {
   useEffect(() => {
     fetchActivities(page, filters);
   }, [fetchActivities, page, filters]);
+
+  useEffect(() => {
+    fetchChartData(chartDays);
+  }, [fetchChartData, chartDays]);
 
   // WebSocket — real-time alerts
   useEffect(() => {
@@ -75,10 +107,11 @@ export default function AdminActivityDashboard() {
     socket.on("activity_alert", (data) => {
       setToasts((prev) => [...prev, { ...data, id: Date.now() }]);
       fetchStats();
+      fetchChartData(chartDays);
     });
 
     return () => disconnectSocket();
-  }, [fetchStats]);
+  }, [fetchStats, fetchChartData, chartDays]);
 
   const handleFilterChange = (updated) => {
     setFilters(updated);
@@ -119,6 +152,48 @@ export default function AdminActivityDashboard() {
           <StatsCard title="Low Risk" value={s.lowRisk || 0} icon={ShieldCheck} color="green" />
           <StatsCard title="Flagged" value={s.flagged || 0} icon={Flag} color="yellow" />
           <StatsCard title="Blocked" value={s.blocked || 0} icon={ShieldOff} color="red" />
+        </div>
+
+        {/* Charts section */}
+        <div className="card" style={{ padding: "20px 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: showCharts ? 20 : 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 15, color: "var(--text-primary)" }}>
+              <BarChart2 size={18} />
+              Analytics Charts
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              {/* Date range selector */}
+              {showCharts && (
+                <div style={{ display: "flex", gap: 4 }}>
+                  {DATE_RANGES.map((r) => (
+                    <button
+                      key={r.value}
+                      className={`btn btn-sm ${chartDays === r.value ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => setChartDays(r.value)}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowCharts((v) => !v)}
+              >
+                <ChevronDown size={14} style={{ transform: showCharts ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                {showCharts ? "Hide" : "Show"}
+              </button>
+            </div>
+          </div>
+
+          {showCharts && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 20 }}>
+              <RiskTrendChart data={trendData} />
+              <RiskDistributionChart stats={s} />
+              <DailyActivityChart data={trendData} />
+              <UserActivityChart data={topUsers} />
+            </div>
+          )}
         </div>
 
         {/* Table card */}

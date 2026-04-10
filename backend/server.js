@@ -14,6 +14,12 @@ import policyRoutes from "./routes/policyRoutes.js";
 import approvalRoutes from "./routes/approvalRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import activityRoutes from "./routes/activityRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
+import mlRoutes from "./routes/mlRoutes.js";
+import metricsRoutes, { prometheusHandler } from "./routes/metricsRoutes.js";
+import emailRoutes from "./routes/emailRoutes.js";
+import { metricsMiddleware } from "./middleware/metricsMiddleware.js";
+import { initializeScheduledReports } from "./services/scheduledReports.js";
 
 dotenv.config();
 const app = express();
@@ -22,10 +28,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
+app.use(metricsMiddleware);
 
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB connected"))
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    // Initialize scheduled reports after DB is ready
+    initializeScheduledReports();
+  })
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
 // Create HTTP + WebSocket server
@@ -52,6 +63,13 @@ app.use("/api/policies", policyRoutes);
 app.use("/api/approvals", approvalRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/ml", mlRoutes);
+app.use("/api/metrics", metricsRoutes);
+app.use("/api/email", emailRoutes);
+
+// Prometheus scrape endpoint
+app.get("/metrics", prometheusHandler);
 
 // Health check
 app.get("/", (req, res) => {

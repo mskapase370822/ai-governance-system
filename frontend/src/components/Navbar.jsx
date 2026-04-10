@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield, Activity, BarChart2 } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, BarChart2, FileText, Heart, Mail } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -22,6 +22,17 @@ export function Navbar() {
 
   const role = (user?.role || "").toLowerCase();
 
+  const navBtn = (path, icon, label) => (
+    <button
+      className={`btn btn-ghost btn-sm${location.pathname === path ? " active" : ""}`}
+      onClick={() => { navigate(path); setMobileOpen(false); }}
+      title={label}
+    >
+      {icon}
+      <span className="navbar-link-label">{label}</span>
+    </button>
+  );
+
   return (
     <nav className="navbar">
       <div className="navbar-inner">
@@ -38,25 +49,16 @@ export function Navbar() {
         {/* Desktop right side */}
         <div className={`navbar-right ${mobileOpen ? "open" : ""}`}>
           {/* Activity Monitoring link — all authenticated users */}
-          <button
-            className={`btn btn-ghost btn-sm${location.pathname === "/activity/monitoring" ? " active" : ""}`}
-            onClick={() => { navigate("/activity/monitoring"); setMobileOpen(false); }}
-            title="Activity Monitoring"
-          >
-            <Activity size={15} />
-            <span className="navbar-link-label">My Activities</span>
-          </button>
+          {navBtn("/activity/monitoring", <Activity size={15} />, "My Activities")}
 
-          {/* Admin Activity Dashboard — admin only */}
+          {/* Admin-only links */}
           {role === "admin" && (
-            <button
-              className={`btn btn-ghost btn-sm${location.pathname === "/admin/activities" ? " active" : ""}`}
-              onClick={() => { navigate("/admin/activities"); setMobileOpen(false); }}
-              title="Admin Activity Dashboard"
-            >
-              <BarChart2 size={15} />
-              <span className="navbar-link-label">Activity Dashboard</span>
-            </button>
+            <>
+              {navBtn("/admin/activities", <BarChart2 size={15} />, "Activity Dashboard")}
+              {navBtn("/admin/reports", <FileText size={15} />, "Reports")}
+              {navBtn("/admin/system-health", <Heart size={15} />, "System Health")}
+              {navBtn("/admin/email-settings", <Mail size={15} />, "Email Settings")}
+            </>
           )}
 
           <div className="navbar-user">

@@ -1,5 +1,6 @@
 import UserActivity from "../models/UserActivity.js";
 import { analyzeRisk } from "../utils/riskAnalyzer.js";
+import { sendHighRiskAlert } from "../services/emailService.js";
 
 /**
  * POST /api/activity/submit
@@ -52,6 +53,15 @@ export const submitActivity = async (req, res) => {
         status,
         timestamp: activity.timestamp,
       });
+    }
+
+    // Send email alert for HIGH risk activities (non-blocking)
+    if (riskLevel === "HIGH") {
+      sendHighRiskAlert(
+        { username: req.user.username, role: req.user.role },
+        { _id: activity._id, inputText: trimmed, timestamp: activity.timestamp },
+        { riskLevel, confidence, reason }
+      ).catch((err) => console.error("Email alert error:", err.message));
     }
 
     res.status(201).json({
@@ -263,6 +273,78 @@ export const getStatistics = async (req, res) => {
     ]);
 
     res.json({ total, highRisk, mediumRisk, lowRisk, flagged, blocked, approved });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * GET /api/activity/charts/trend
+ * Admin: get risk counts grouped by day for last N days (default 30).
+ */
+export const getRiskTrend = async (req, res) => {
+  try {
+    const days = Math.min(90, Math.max(7, parseInt(req.query.days) || 30));
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const data = await UserActivity.aggregate([
+      { $match: { timestamp: { $gte: since } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          HIGH: { $sum: { $cond: [{ $eq: ["$riskLevel", "HIGH"] }, 1, 0] } },
+          MEDIUM: { $sum: { $cond: [{ $eq: ["$riskLevel", "MEDIUM"] }, 1, 0] } },
+          LOW: { $sum: { $cond: [{ $eq: ["$riskLevel", "LOW"] }, 1, 0] } },
+          total: { $sum: 1 },
+          high: { $sum: { $cond: [{ $eq: ["$riskLevel", "HIGH"] }, 1, 0] } },
+        },
+      },
+      { $sort: { _id: 1 } },
+      { $addFields: { date: "$_id" } },
+    ]);
+
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * GET /api/activity/charts/users
+ * Admin: get top users by activity count.
+ */
+export const getTopUsers = async (req, res) => {
+  try {
+    const data = await UserActivity.aggregate([
+      {
+        $group: {
+          _id: "$userId",
+          count: { $sum: 1 },
+          highRisk: { $sum: { $cond: [{ $eq: ["$riskLevel", "HIGH"] }, 1, 0] } },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: { path: "$user", preserveNullAndEmpty: true } },
+      {
+        $project: {
+          username: { $ifNull: ["$user.username", "Unknown"] },
+          role: { $ifNull: ["$user.role", "Unknown"] },
+          count: 1,
+          highRisk: 1,
+        },
+      },
+    ]);
+
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
