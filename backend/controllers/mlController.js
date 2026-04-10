@@ -88,7 +88,7 @@ export const analyzeRiskEndpoint = async (req, res) => {
     const finalReason =
       ruleResult.reason !== "Action appears safe — no risk indicators found."
         ? ruleResult.reason
-        : `ML model detected ${prediction.riskLevel.toLowerCase()} risk pattern.`;
+        : `ML model detected ${finalRiskLevel.toLowerCase()} risk pattern.`;
 
     res.json({
       risk: finalRiskLevel.toLowerCase(),

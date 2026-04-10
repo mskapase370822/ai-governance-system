@@ -174,8 +174,7 @@ export default function AdminDashboard() {
     fetchAlerts();
     fetchActivityStats();
     fetchActivityChartData(30);
-    fetchActivities(1, EMPTY_ACTIVITY_FILTERS);
-  }, [fetchStats, fetchLogs, fetchApprovals, fetchPolicies, fetchAlerts, fetchActivityStats, fetchActivityChartData, fetchActivities]);
+  }, [fetchStats, fetchLogs, fetchApprovals, fetchPolicies, fetchAlerts, fetchActivityStats, fetchActivityChartData]);
 
   useEffect(() => {
     fetchActivities(activityPage, activityFilters);
@@ -193,7 +192,7 @@ export default function AdminDashboard() {
     const socket = initializeSocket(token);
 
     socket.on("risk_alert", (data) => {
-      const alertData = { ...data, id: Date.now() };
+      const alertData = { ...data, id: Date.now() + Math.random() };
       setToasts((prev) => [...prev, alertData]);
       setAlertHistory((prev) => [alertData, ...prev].slice(0, 50));
       setUnreadAlerts((prev) => prev + 1);
@@ -201,7 +200,7 @@ export default function AdminDashboard() {
     });
 
     socket.on("activity_alert", (data) => {
-      const alertData = { ...data, id: Date.now() };
+      const alertData = { ...data, id: Date.now() + Math.random() };
       setToasts((prev) => [...prev, alertData]);
       fetchActivityStats();
     });
