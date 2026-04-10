@@ -7,7 +7,7 @@
 import Log from "../models/Log.js";
 import Alert from "../models/Alert.js";
 import ApprovalRequest from "../models/ApprovalRequest.js";
-import { detectRisk, categorizeAction } from "../utils/detectRisk.js";
+import { detectRisk } from "../utils/detectRisk.js";
 import { detectAnomaly, updateBehaviorProfile } from "../utils/anomalyDetection.js";
 import { evaluatePolicies } from "../utils/policyEngine.js";
 import axios from "axios";
@@ -64,6 +64,8 @@ const combineRiskAssessments = (ruleResult, aiResult) => {
  * Determine action control decision based on risk level and user role
  */
 const determineActionDecision = (riskLevel, userRole, policyResult) => {
+  const normalizedRole = (userRole || "").toLowerCase();
+
   // Policy violations always block
   if (!policyResult.allowed) {
     return {
@@ -73,47 +75,47 @@ const determineActionDecision = (riskLevel, userRole, policyResult) => {
   }
 
   // RBAC: Admins can do anything
-  if (userRole === "Admin") {
+  if (normalizedRole === "admin") {
     if (riskLevel === "HIGH") {
       return {
         status: "warned",
-        systemResponse: "High-risk action allowed for Admin with warning.",
+        systemResponse: "High-risk input flagged for admin review before proceeding.",
       };
     }
-    return { status: "allowed", systemResponse: "Action allowed for Admin." };
+    return { status: "allowed", systemResponse: "Input logged and allowed for admin." };
   }
 
   // RBAC: Managers can handle medium risk, need approval for high
-  if (userRole === "Manager") {
+  if (normalizedRole === "manager") {
     if (riskLevel === "HIGH") {
       return {
         status: "pending_approval",
-        systemResponse: "High-risk action requires Admin approval.",
+        systemResponse: "High-risk input flagged and sent for admin approval.",
       };
     }
     if (riskLevel === "MEDIUM") {
       return {
         status: "warned",
-        systemResponse: "Medium-risk action allowed for Manager with warning.",
+        systemResponse: "Medium-risk input flagged. Manager confirmation required.",
       };
     }
-    return { status: "allowed", systemResponse: "Action allowed." };
+    return { status: "allowed", systemResponse: "Input logged and allowed." };
   }
 
   // Employee: Low → allow, Medium → warn + confirm, High → block/need approval
   if (riskLevel === "HIGH") {
     return {
       status: "blocked",
-      systemResponse: "High-risk action blocked. Requires Admin approval to proceed.",
+      systemResponse: "High-risk input blocked and escalated for admin approval.",
     };
   }
   if (riskLevel === "MEDIUM") {
     return {
       status: "warned",
-      systemResponse: "Medium-risk action detected. Please confirm to proceed.",
+      systemResponse: "Medium-risk input flagged. Confirm if you want to proceed.",
     };
   }
-  return { status: "allowed", systemResponse: "Action allowed — no risk detected." };
+  return { status: "allowed", systemResponse: "Input logged and allowed." };
 };
 
 /**
@@ -123,20 +125,24 @@ export const submitAction = async (req, res) => {
   try {
     const { action, confirmed } = req.body;
     const user = req.user;
+    const trimmedAction = typeof action === "string" ? action.trim() : "";
 
-    if (!action || !action.trim()) {
-      return res.status(400).json({ error: "Action text is required." });
+    if (!trimmedAction) {
+      return res.status(400).json({ error: "User input is required." });
+    }
+    if (trimmedAction.length > 5000) {
+      return res.status(400).json({ error: "User input is too long. Keep it under 5000 characters." });
     }
 
     // === Layer 1: Rule-Based Risk Detection ===
-    const ruleResult = detectRisk(action);
+    const ruleResult = detectRisk(trimmedAction);
 
     // === Layer 2: AI-Based Risk Analysis ===
-    const aiResult = await getAIRiskAnalysis(action);
+    const aiResult = await getAIRiskAnalysis(trimmedAction);
     const combinedRisk = combineRiskAssessments(ruleResult, aiResult);
 
     // === Layer 3: Policy Engine ===
-    const policyResult = await evaluatePolicies(action, user);
+    const policyResult = await evaluatePolicies(trimmedAction, user);
 
     // === Layer 4: RBAC + Action Control Decision ===
     let decision = determineActionDecision(
@@ -148,7 +154,7 @@ export const submitAction = async (req, res) => {
     // If user confirmed a warning, allow it
     if (confirmed && decision.status === "warned") {
       decision.status = "allowed";
-      decision.systemResponse = "Action confirmed by user and allowed.";
+      decision.systemResponse = "Input confirmed by user and allowed.";
     }
 
     // === Layer 5: Anomaly Detection ===
@@ -163,7 +169,7 @@ export const submitAction = async (req, res) => {
     // === Create Log Entry ===
     const log = await Log.create({
       userId: user._id,
-      action,
+      action: trimmedAction,
       category: combinedRisk.category,
       riskLevel: combinedRisk.riskLevel,
       confidence: combinedRisk.confidence,
@@ -183,12 +189,12 @@ export const submitAction = async (req, res) => {
 
     // === Create Approval Request if needed ===
     let approvalRequest = null;
-    if (decision.status === "blocked" && combinedRisk.riskLevel === "HIGH" && user.role !== "Admin") {
+    if (decision.status === "blocked" && combinedRisk.riskLevel === "HIGH" && (user.role || "").toLowerCase() !== "admin") {
       approvalRequest = await ApprovalRequest.create({
         requestedBy: user._id,
         requestedByUsername: user.username,
         requestedByRole: user.role,
-        action,
+        action: trimmedAction,
         riskLevel: combinedRisk.riskLevel,
         confidence: combinedRisk.confidence,
         reason: combinedRisk.reason,
@@ -199,7 +205,7 @@ export const submitAction = async (req, res) => {
 
       log.approvalRequestId = approvalRequest._id;
       log.status = "pending_approval";
-      log.systemResponse = "High-risk action submitted for Admin approval.";
+      log.systemResponse = "High-risk input submitted for admin approval.";
       await log.save();
     }
 
@@ -209,7 +215,7 @@ export const submitAction = async (req, res) => {
         userId: user._id,
         username: user.username,
         userRole: user.role,
-        action: action.substring(0, 200),
+        action: trimmedAction.substring(0, 200),
         riskLevel: combinedRisk.riskLevel,
         confidence: combinedRisk.confidence,
         reason: combinedRisk.reason,
@@ -224,7 +230,7 @@ export const submitAction = async (req, res) => {
           id: alert._id,
           user: user.username,
           userRole: user.role,
-          action: action.substring(0, 100),
+          action: trimmedAction.substring(0, 100),
           riskLevel: combinedRisk.riskLevel,
           confidence: combinedRisk.confidence,
           reason: combinedRisk.reason,
@@ -238,7 +244,7 @@ export const submitAction = async (req, res) => {
           io.emit("approval_request", {
             id: approvalRequest._id,
             user: user.username,
-            action: action.substring(0, 100),
+            action: trimmedAction.substring(0, 100),
             riskLevel: combinedRisk.riskLevel,
             timestamp: approvalRequest.createdAt,
           });
@@ -293,10 +299,11 @@ export const confirmAction = async (req, res) => {
     }
 
     log.status = "allowed";
-    log.systemResponse = "Action confirmed by user after warning.";
+    log.systemResponse = "Input confirmed by user after warning.";
     await log.save();
 
-    res.json({ message: "Action confirmed", log });
+    const populated = await Log.findById(log._id).populate("userId", "username role");
+    res.json({ message: "Input confirmed", log: populated });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

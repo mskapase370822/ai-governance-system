@@ -38,7 +38,7 @@ export function LogTable({ logs, isAdmin = false }) {
         </thead>
         <tbody>
           {logs.map((log) => (
-            <tr key={log._id || log.id || Math.random()} className={log.isAnomaly ? "row-anomaly" : ""}>
+            <tr key={log._id || log.id} className={log.isAnomaly ? "row-anomaly" : ""}>
               {isAdmin && (
                 <td className="cell-primary">
                   <div className="user-cell">
@@ -53,7 +53,14 @@ export function LogTable({ logs, isAdmin = false }) {
                 </td>
               )}
               <td className="cell-truncate" title={log.action}>
-                {log.action}
+                <div style={{ display: "grid", gap: 4 }}>
+                  <span>{log.action}</span>
+                  {(log.reason || log.systemResponse) && (
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.78rem" }}>
+                      {log.reason || log.systemResponse}
+                    </span>
+                  )}
+                </div>
               </td>
               <td>
                 <RiskBadge level={log.riskLevel} />

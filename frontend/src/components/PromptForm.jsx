@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, AlertTriangle, ShieldCheck, ShieldAlert, Loader, ChevronDown } from "lucide-react";
+import { Send, AlertTriangle, ShieldCheck, ShieldAlert, ChevronDown } from "lucide-react";
 import { submitActionAPI, confirmActionAPI } from "../services/api";
 import { RiskBadge } from "./RiskBadge";
 
@@ -27,7 +27,7 @@ export function PromptForm({ onLogCreated }) {
       onLogCreated?.(res.data.log);
     } catch (err) {
       setError(
-        err.response?.data?.error || "Failed to submit action. Please try again."
+        err.response?.data?.error || "Failed to submit input. Please try again."
       );
     } finally {
       setLoading(false);
@@ -38,13 +38,20 @@ export function PromptForm({ onLogCreated }) {
     if (!result?.log?._id) return;
     setLoading(true);
     try {
-      // Re-submit with confirmed flag
-      const res = await submitActionAPI({ action: result.log.action, confirmed: true });
-      setResult(res.data);
+      const res = await confirmActionAPI(result.log._id);
+      setResult((prev) => ({
+        ...prev,
+        log: res.data.log,
+        decision: {
+          ...prev?.decision,
+          status: res.data.log.status,
+          systemResponse: res.data.log.systemResponse,
+        },
+      }));
       setAction("");
       onLogCreated?.(res.data.log);
     } catch (err) {
-      setError(err.response?.data?.error || "Failed to confirm action.");
+      setError(err.response?.data?.error || "Failed to confirm input.");
     } finally {
       setLoading(false);
     }
@@ -72,11 +79,11 @@ export function PromptForm({ onLogCreated }) {
     <div className="prompt-form">
       <form onSubmit={handleSubmit}>
         <div>
-          <label className="label" htmlFor="action-text">Action / Command / Query</label>
+          <label className="label" htmlFor="action-text">User Input / Prompt</label>
           <textarea
             id="action-text"
             className="textarea"
-            placeholder="Enter any action: SQL query, system command, data request, config change..."
+            placeholder="Type what the user wants to do. Example: delete records, export user data, update config, run SQL..."
             value={action}
             onChange={(e) => setAction(e.target.value)}
             required
@@ -101,12 +108,12 @@ export function PromptForm({ onLogCreated }) {
           {loading ? (
             <>
               <div className="spinner"></div>
-              Analyzing...
+              Logging & checking risk...
             </>
           ) : (
             <>
               <Send size={16} />
-              Submit for Review
+              Submit Input
             </>
           )}
         </button>
@@ -120,9 +127,9 @@ export function PromptForm({ onLogCreated }) {
             <div className="action-result-status">
               {getStatusIcon(result.decision?.status)}
               <span className="action-result-status-text">
-                {result.decision?.status === "allowed" && "✅ Action Allowed"}
+                {result.decision?.status === "allowed" && "✅ Input Allowed"}
                 {result.decision?.status === "warned" && "⚠️ Warning — Confirmation Required"}
-                {result.decision?.status === "blocked" && "🚫 Action Blocked"}
+                {result.decision?.status === "blocked" && "🚫 Input Blocked"}
                 {result.decision?.status === "pending_approval" && "⏳ Pending Admin Approval"}
                 {result.decision?.status === "approved" && "✅ Approved by Admin"}
                 {result.decision?.status === "denied" && "❌ Denied by Admin"}

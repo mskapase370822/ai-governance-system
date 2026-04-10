@@ -336,10 +336,10 @@ export default function AdminDashboard() {
               </select>
               <input
                 className="input"
-                placeholder="Search actions..."
+                placeholder="Search user, input, reason..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ maxWidth: 250 }}
+                style={{ maxWidth: 280 }}
               />
               <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
                 {Array.isArray(logs) ? logs.length : 0} logs

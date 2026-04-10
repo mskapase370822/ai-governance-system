@@ -35,7 +35,7 @@ export default function UserDashboard() {
   }, [fetchData]);
 
   const handleLogCreated = (newLog) => {
-    setLogs((prev) => [newLog, ...prev]);
+    setLogs((prev) => [newLog, ...prev.filter((log) => log._id !== newLog._id)]);
     // Refresh stats
     getUserStatsAPI().then((res) => setStats(res.data)).catch(() => {});
   };
