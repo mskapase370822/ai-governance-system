@@ -2,6 +2,7 @@ import UserActivity from "../models/UserActivity.js";
 import { analyzeRisk } from "../utils/riskAnalyzer.js";
 import emailService from "../services/emailService.js";
 import User from "../models/User.js";
+import { writeAuditLog } from "../utils/auditLogger.js";
 
 /**
  * POST /api/activity/submit
@@ -175,6 +176,7 @@ export const flagActivity = async (req, res) => {
     ).populate("userId", "username role");
 
     if (!activity) return res.status(404).json({ error: "Activity not found." });
+    await writeAuditLog(req.user, "FLAG_ACTIVITY", "UserActivity", activity._id, { reason: reason.trim() }, req.ip);
     res.json(activity);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -194,6 +196,7 @@ export const approveActivity = async (req, res) => {
     ).populate("userId", "username role");
 
     if (!activity) return res.status(404).json({ error: "Activity not found." });
+    await writeAuditLog(req.user, "APPROVE_ACTIVITY", "UserActivity", activity._id, {}, req.ip);
     res.json(activity);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -213,6 +216,7 @@ export const blockActivity = async (req, res) => {
     ).populate("userId", "username role");
 
     if (!activity) return res.status(404).json({ error: "Activity not found." });
+    await writeAuditLog(req.user, "BLOCK_ACTIVITY", "UserActivity", activity._id, {}, req.ip);
     res.json(activity);
   } catch (err) {
     res.status(500).json({ error: err.message });

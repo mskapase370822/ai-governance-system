@@ -88,4 +88,7 @@ export const getSystemMetricsAPI = () => API.get("/metrics/all");
 export const getMLStatsAPI  = () => API.get("/ml/stats");
 export const trainMLModelAPI = (options = {}) => API.post("/ml/train", options);
 
+// Audit Log
+export const getAuditLogsAPI = (params) => API.get("/audit", { params });
+
 export default API;
