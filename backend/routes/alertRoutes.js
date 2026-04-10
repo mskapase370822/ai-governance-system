@@ -1,12 +1,12 @@
 import express from "express";
 import { getAlerts, markAlertRead, markAllAlertsRead, dismissAlert } from "../controllers/alertController.js";
-import { protect, managerOrAdmin } from "../middleware/authMiddleware.js";
+import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", protect, managerOrAdmin, getAlerts);
-router.put("/:id/read", protect, managerOrAdmin, markAlertRead);
-router.put("/read-all", protect, managerOrAdmin, markAllAlertsRead);
-router.put("/:id/dismiss", protect, managerOrAdmin, dismissAlert);
+router.get("/", protect, adminOnly, getAlerts);
+router.put("/:id/read", protect, adminOnly, markAlertRead);
+router.put("/read-all", protect, adminOnly, markAllAlertsRead);
+router.put("/:id/dismiss", protect, adminOnly, dismissAlert);
 
 export default router;

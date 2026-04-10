@@ -4,9 +4,11 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import ManagerDashboard from "./pages/ManagerDashboard";
 import ActivityMonitoring from "./pages/ActivityMonitoring";
 import AdminActivityDashboard from "./pages/AdminActivityDashboard";
+import AdminEmailSettings from "./pages/AdminEmailSettings";
+import AdminReportsPage from "./pages/AdminReportsPage";
+import AdminSystemHealth from "./pages/AdminSystemHealth";
 
 function App() {
   return (
@@ -23,14 +25,6 @@ function App() {
             }
           />
           <Route
-            path="/manager"
-            element={
-              <ProtectedRoute allowedRoles={["Manager"]}>
-                <ManagerDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
@@ -41,7 +35,7 @@ function App() {
           <Route
             path="/activity/monitoring"
             element={
-              <ProtectedRoute allowedRoles={["Employee", "Manager", "Admin"]}>
+              <ProtectedRoute allowedRoles={["Employee", "Admin"]}>
                 <ActivityMonitoring />
               </ProtectedRoute>
             }
@@ -51,6 +45,30 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["Admin"]}>
                 <AdminActivityDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminReportsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/health"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminSystemHealth />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/email-settings"
+            element={
+              <ProtectedRoute allowedRoles={["Admin"]}>
+                <AdminEmailSettings />
               </ProtectedRoute>
             }
           />

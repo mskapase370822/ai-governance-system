@@ -85,23 +85,6 @@ const determineActionDecision = (riskLevel, userRole, policyResult) => {
     return { status: "allowed", systemResponse: "Input logged and allowed for admin." };
   }
 
-  // RBAC: Managers can handle medium risk, need approval for high
-  if (normalizedRole === "manager") {
-    if (riskLevel === "HIGH") {
-      return {
-        status: "pending_approval",
-        systemResponse: "High-risk input flagged and sent for admin approval.",
-      };
-    }
-    if (riskLevel === "MEDIUM") {
-      return {
-        status: "warned",
-        systemResponse: "Medium-risk input flagged. Manager confirmation required.",
-      };
-    }
-    return { status: "allowed", systemResponse: "Input logged and allowed." };
-  }
-
   // Employee: Low → allow, Medium → warn + confirm, High → block/need approval
   if (riskLevel === "HIGH") {
     return {

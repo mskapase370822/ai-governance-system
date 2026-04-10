@@ -23,7 +23,6 @@ export function ProtectedRoute({ children, allowedRoles }) {
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     if (!normalizedAllowed.includes(userRole)) {
       if (userRole === "admin") return <Navigate to="/admin" replace />;
-      if (userRole === "manager") return <Navigate to="/manager" replace />;
       return <Navigate to="/dashboard" replace />;
     }
   }
