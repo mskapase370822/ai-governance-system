@@ -1,5 +1,7 @@
 import UserActivity from "../models/UserActivity.js";
 import { analyzeRisk } from "../utils/riskAnalyzer.js";
+import emailService from "../services/emailService.js";
+import User from "../models/User.js";
 
 /**
  * POST /api/activity/submit
@@ -52,6 +54,25 @@ export const submitActivity = async (req, res) => {
         status,
         timestamp: activity.timestamp,
       });
+    }
+
+    // Send email alert on HIGH risk
+    if (riskLevel === "HIGH" && process.env.EMAIL_USER) {
+      try {
+        const admins = await User.find({ role: { $in: ["Admin", "admin"] } }).select("email username");
+        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        if (adminEmails.length === 0 && process.env.ADMIN_EMAIL) {
+          adminEmails.push(process.env.ADMIN_EMAIL);
+        }
+        if (adminEmails.length > 0) {
+          await emailService.sendHighRiskAlert(adminEmails, {
+            username: req.user.username,
+            inputText: trimmed,
+          }, { confidence, reason });
+        }
+      } catch (emailErr) {
+        console.error("Failed to send high-risk email alert:", emailErr.message);
+      }
     }
 
     res.status(201).json({

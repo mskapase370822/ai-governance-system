@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Navbar } from "../components/Navbar";
 import { ActivityTable } from "../components/ActivityTable";
 import { RiskFilter } from "../components/RiskFilter";
@@ -11,6 +11,11 @@ import {
   getActivityStatsAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
+import RiskTrendChart from "../components/Charts/RiskTrendChart";
+import RiskDistributionChart from "../components/Charts/RiskDistributionChart";
+import UserActivityChart from "../components/Charts/UserActivityChart";
+import DailyActivityChart from "../components/Charts/DailyActivityChart";
+import RiskScoreHeatmap from "../components/Charts/RiskScoreHeatmap";
 
 const EMPTY_FILTERS = { riskLevel: "all", status: "all", search: "", startDate: "", endDate: "" };
 

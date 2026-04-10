@@ -4,7 +4,7 @@ import generateToken from "../utils/generateToken.js";
 
 // Normalize role to proper case
 const normalizeRole = (role) => {
-  const map = { admin: "Admin", manager: "Manager", employee: "Employee" };
+  const map = { admin: "Admin", employee: "Employee" };
   return map[(role || "").toLowerCase()] || "Employee";
 };
 
