@@ -1,11 +1,12 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, BarChart2 } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -18,6 +19,8 @@ export function Navbar() {
     if (user?.role === "Manager") return "/manager";
     return "/dashboard";
   };
+
+  const role = (user?.role || "").toLowerCase();
 
   return (
     <nav className="navbar">
@@ -34,6 +37,28 @@ export function Navbar() {
 
         {/* Desktop right side */}
         <div className={`navbar-right ${mobileOpen ? "open" : ""}`}>
+          {/* Activity Monitoring link — all authenticated users */}
+          <button
+            className={`btn btn-ghost btn-sm${location.pathname === "/activity/monitoring" ? " active" : ""}`}
+            onClick={() => { navigate("/activity/monitoring"); setMobileOpen(false); }}
+            title="Activity Monitoring"
+          >
+            <Activity size={15} />
+            <span className="navbar-link-label">My Activities</span>
+          </button>
+
+          {/* Admin Activity Dashboard — admin only */}
+          {role === "admin" && (
+            <button
+              className={`btn btn-ghost btn-sm${location.pathname === "/admin/activities" ? " active" : ""}`}
+              onClick={() => { navigate("/admin/activities"); setMobileOpen(false); }}
+              title="Admin Activity Dashboard"
+            >
+              <BarChart2 size={15} />
+              <span className="navbar-link-label">Activity Dashboard</span>
+            </button>
+          )}
+
           <div className="navbar-user">
             <div className="avatar avatar-sm">
               {user?.username?.charAt(0).toUpperCase() || "U"}

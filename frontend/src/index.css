@@ -924,6 +924,9 @@ a:hover {
   .navbar-user-info {
     text-align: left;
   }
+  .navbar-link-label {
+    display: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
