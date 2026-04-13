@@ -6,8 +6,6 @@ import { AlertToast } from "../components/AlertToast";
 import { ApprovalPanel } from "../components/ApprovalPanel";
 import { ActivityTable } from "../components/ActivityTable";
 import { RiskFilter } from "../components/RiskFilter";
-import RiskDistributionChart from "../components/Charts/RiskDistributionChart";
-import UserActivityChart from "../components/Charts/UserActivityChart";
 import {
   FileText, ShieldAlert, Users, Activity, AlertTriangle,
   BarChart3, Bell, CheckCircle, Clock, XCircle, Zap,
@@ -17,7 +15,7 @@ import {
   getDashboardStatsAPI, getAllLogsAPI, getPendingApprovalsAPI,
   getAlertsAPI,
   getAllActivitiesAPI, getFilteredActivitiesAPI, getActivityStatsAPI,
-  getActivityChartStatsAPI, analyzeRiskAPI,
+  analyzeRiskAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
 import {
@@ -35,11 +33,6 @@ const TABS = [
 ];
 
 const EMPTY_ACTIVITY_FILTERS = { riskLevel: "all", status: "all", search: "", startDate: "", endDate: "" };
-const RANGE_OPTIONS = [
-  { label: "7 days",  value: 7  },
-  { label: "30 days", value: 30 },
-  { label: "90 days", value: 90 },
-];
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
@@ -60,8 +53,6 @@ export default function AdminDashboard() {
   const [activityFilters, setActivityFilters] = useState(EMPTY_ACTIVITY_FILTERS);
   const [activityPage, setActivityPage] = useState(1);
   const [activityStats, setActivityStats] = useState(null);
-  const [activityChartData, setActivityChartData] = useState(null);
-  const [activityDateRange, setActivityDateRange] = useState(30);
   const [activityLoading, setActivityLoading] = useState(false);
 
   // AI Risk tab state
@@ -142,31 +133,17 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const fetchActivityChartData = useCallback(async (days) => {
-    try {
-      const res = await getActivityChartStatsAPI(days);
-      setActivityChartData(res.data);
-    } catch (err) {
-      console.error("Failed to fetch activity chart data:", err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchStats();
     fetchLogs();
     fetchApprovals();
     fetchAlerts();
     fetchActivityStats();
-    fetchActivityChartData(30);
-  }, [fetchStats, fetchLogs, fetchApprovals, fetchAlerts, fetchActivityStats, fetchActivityChartData]);
+  }, [fetchStats, fetchLogs, fetchApprovals, fetchAlerts, fetchActivityStats]);
 
   useEffect(() => {
     fetchActivities(activityPage, activityFilters);
   }, [activityPage, activityFilters, fetchActivities]);
-
-  useEffect(() => {
-    fetchActivityChartData(activityDateRange);
-  }, [activityDateRange, fetchActivityChartData]);
 
   // WebSocket for real-time alerts
   useEffect(() => {
@@ -263,7 +240,7 @@ export default function AdminDashboard() {
               <button
                 key={tab.id}
                 className={`tab-btn ${activeTab === tab.id ? "active" : ""}`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => { setActiveTab(tab.id); if (tab.id === "alerts") setUnreadAlerts(0); }}
               >
                 <Icon size={16} />
                 {tab.label}
@@ -565,33 +542,6 @@ export default function AdminDashboard() {
               <StatsCard title="Medium"    value={activityStats?.mediumRisk  || 0} icon={AlertTriangle} color="yellow" />
               <StatsCard title="Flagged"   value={activityStats?.flagged    || 0} icon={Flag}          color="yellow" />
               <StatsCard title="Blocked"   value={activityStats?.blocked    || 0} icon={ShieldOff}     color="red"    />
-            </div>
-
-            {/* Chart date-range selector */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Chart range:</span>
-              {RANGE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  className={`btn btn-sm ${activityDateRange === opt.value ? "btn-primary" : "btn-ghost"}`}
-                  onClick={() => setActivityDateRange(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Charts */}
-            <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
-              <div className="card" style={{ padding: 20 }}>
-                <RiskDistributionChart
-                  data={activityChartData?.distribution || []}
-                  onFilter={(level) => setActivityFilters((f) => ({ ...f, riskLevel: level }))}
-                />
-              </div>
-              <div className="card" style={{ padding: 20 }}>
-                <UserActivityChart data={activityChartData?.topUsers || []} />
-              </div>
             </div>
 
             {/* Activity Table */}
