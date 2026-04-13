@@ -4,29 +4,25 @@ import { StatsCard } from "../components/StatsCard";
 import { LogTable } from "../components/LogTable";
 import { AlertToast } from "../components/AlertToast";
 import { ApprovalPanel } from "../components/ApprovalPanel";
-import { PolicyManager } from "../components/PolicyManager";
 import { ActivityTable } from "../components/ActivityTable";
 import { RiskFilter } from "../components/RiskFilter";
-import RiskTrendChart from "../components/Charts/RiskTrendChart";
 import RiskDistributionChart from "../components/Charts/RiskDistributionChart";
 import UserActivityChart from "../components/Charts/UserActivityChart";
-import DailyActivityChart from "../components/Charts/DailyActivityChart";
-import RiskScoreHeatmap from "../components/Charts/RiskScoreHeatmap";
 import {
   FileText, ShieldAlert, Users, Activity, AlertTriangle,
-  BarChart3, Bell, CheckCircle, Clock, Shield, XCircle, Zap,
+  BarChart3, Bell, CheckCircle, Clock, XCircle, Zap,
   Brain, Flag, ShieldOff,
 } from "lucide-react";
 import {
   getDashboardStatsAPI, getAllLogsAPI, getPendingApprovalsAPI,
-  getPoliciesAPI, getAlertsAPI,
+  getAlertsAPI,
   getAllActivitiesAPI, getFilteredActivitiesAPI, getActivityStatsAPI,
   getActivityChartStatsAPI, analyzeRiskAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line, Legend,
+  ResponsiveContainer, Cell, PieChart, Pie,
 } from "recharts";
 
 const TABS = [
@@ -34,7 +30,6 @@ const TABS = [
   { id: "logs",        label: "Audit Logs",  icon: FileText    },
   { id: "approvals",   label: "Approvals",   icon: CheckCircle },
   { id: "alerts",      label: "Alerts",      icon: Bell        },
-  { id: "policies",    label: "Policies",    icon: Shield      },
   { id: "ai_risk",     label: "AI Risk",     icon: Brain       },
   { id: "activities",  label: "Activities",  icon: Activity    },
 ];
@@ -51,7 +46,6 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState([]);
   const [approvals, setApprovals] = useState([]);
-  const [policies, setPolicies] = useState([]);
   const [alertHistory, setAlertHistory] = useState([]);
   const [toasts, setToasts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -110,15 +104,6 @@ export default function AdminDashboard() {
     }
   }, []);
 
-  const fetchPolicies = useCallback(async () => {
-    try {
-      const res = await getPoliciesAPI();
-      setPolicies(res.data);
-    } catch (err) {
-      console.error("Failed to fetch policies:", err);
-    }
-  }, []);
-
   const fetchAlerts = useCallback(async () => {
     try {
       const res = await getAlertsAPI({ limit: 50 });
@@ -170,11 +155,10 @@ export default function AdminDashboard() {
     fetchStats();
     fetchLogs();
     fetchApprovals();
-    fetchPolicies();
     fetchAlerts();
     fetchActivityStats();
     fetchActivityChartData(30);
-  }, [fetchStats, fetchLogs, fetchApprovals, fetchPolicies, fetchAlerts, fetchActivityStats, fetchActivityChartData]);
+  }, [fetchStats, fetchLogs, fetchApprovals, fetchAlerts, fetchActivityStats, fetchActivityChartData]);
 
   useEffect(() => {
     fetchActivities(activityPage, activityFilters);
@@ -249,14 +233,6 @@ export default function AdminDashboard() {
     value: s.count,
     color: s._id === "allowed" ? "#10b981" : s._id === "blocked" ? "#ef4444" :
            s._id === "warned" ? "#f59e0b" : s._id === "pending_approval" ? "#8b5cf6" : "#64748b",
-  }));
-
-  const dailyData = (stats?.dailyActivity || []).map((d) => ({
-    date: d._id?.slice(5) || "",
-    total: d.total,
-    high: d.high,
-    medium: d.medium,
-    low: d.low,
   }));
 
   const s = stats?.summary || {};
@@ -361,29 +337,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Activity Trend */}
-            {dailyData.length > 0 && (
-              <div className="chart-container" style={{ marginBottom: 24 }}>
-                <div className="card-title" style={{ marginBottom: 20 }}>
-                  <Activity size={18} />
-                  7-Day Activity Trend
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.08)" />
-                    <XAxis dataKey="date" tick={{ fill: "#64748b", fontSize: 12 }} />
-                    <YAxis tick={{ fill: "#64748b", fontSize: 12 }} allowDecimals={false} />
-                    <Tooltip contentStyle={{ background: "#1a2236", border: "1px solid rgba(148,163,184,0.12)", borderRadius: "10px", color: "#f1f5f9" }} />
-                    <Legend />
-                    <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2} name="Total" dot={false} />
-                    <Line type="monotone" dataKey="high" stroke="#ef4444" strokeWidth={2} name="High Risk" dot={false} />
-                    <Line type="monotone" dataKey="medium" stroke="#f59e0b" strokeWidth={2} name="Medium" dot={false} />
-                    <Line type="monotone" dataKey="low" stroke="#10b981" strokeWidth={2} name="Low" dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
             {/* Top risky users */}
             {stats?.topRiskyUsers?.length > 0 && (
               <div className="card" style={{ marginBottom: 24 }}>
@@ -476,6 +429,8 @@ export default function AdminDashboard() {
                 fetchApprovals();
                 fetchLogs();
                 fetchStats();
+                fetchAlerts();
+                setUnreadAlerts(0);
               }}
             />
           </div>
@@ -528,20 +483,6 @@ export default function AdminDashboard() {
                 })
               )}
             </div>
-          </div>
-        )}
-
-        {/* === POLICIES TAB === */}
-        {activeTab === "policies" && (
-          <div className="card">
-            <div className="card-title" style={{ marginBottom: 16 }}>
-              <Shield size={18} />
-              Governance Policies
-            </div>
-            <PolicyManager
-              policies={policies}
-              onUpdate={fetchPolicies}
-            />
           </div>
         )}
 
@@ -598,12 +539,6 @@ export default function AdminDashboard() {
                         {analyzeResult.risk}
                       </div>
                     </div>
-                    <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 140 }}>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Confidence Score</div>
-                      <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                        {(analyzeResult.score * 100).toFixed(0)}%
-                      </div>
-                    </div>
                   </div>
                   <div>
                     <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reason</div>
@@ -649,25 +584,14 @@ export default function AdminDashboard() {
             {/* Charts */}
             <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
               <div className="card" style={{ padding: 20 }}>
-                <RiskTrendChart data={activityChartData?.trend || []} />
-              </div>
-              <div className="card" style={{ padding: 20 }}>
                 <RiskDistributionChart
                   data={activityChartData?.distribution || []}
                   onFilter={(level) => setActivityFilters((f) => ({ ...f, riskLevel: level }))}
                 />
               </div>
-            </div>
-            <div className="grid-stats" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 16 }}>
-              <div className="card" style={{ padding: 20 }}>
-                <DailyActivityChart data={activityChartData?.trend || []} />
-              </div>
               <div className="card" style={{ padding: 20 }}>
                 <UserActivityChart data={activityChartData?.topUsers || []} />
               </div>
-            </div>
-            <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-              <RiskScoreHeatmap data={activityChartData?.heatmap || []} />
             </div>
 
             {/* Activity Table */}
