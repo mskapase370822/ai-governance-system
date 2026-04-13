@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield, Activity, FileText } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, FileText, BarChart3, Mail, Cpu } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -16,6 +16,7 @@ export function Navbar() {
 
   const getDashboardPath = () => {
     if (user?.role === "Admin") return "/admin";
+    if ((user?.role || "").toLowerCase() === "manager") return "/manager";
     return "/dashboard";
   };
 
@@ -52,12 +53,36 @@ export function Navbar() {
           {role === "admin" && (
             <>
               <button
+                className={`btn btn-ghost btn-sm${location.pathname === "/admin/activity" ? " active" : ""}`}
+                onClick={() => { navigate("/admin/activity"); setMobileOpen(false); }}
+                title="Analytics"
+              >
+                <BarChart3 size={15} />
+                <span className="navbar-link-label">Analytics</span>
+              </button>
+              <button
                 className={`btn btn-ghost btn-sm${location.pathname === "/admin/reports" ? " active" : ""}`}
                 onClick={() => { navigate("/admin/reports"); setMobileOpen(false); }}
                 title="Reports"
               >
                 <FileText size={15} />
                 <span className="navbar-link-label">Reports</span>
+              </button>
+              <button
+                className={`btn btn-ghost btn-sm${location.pathname === "/admin/email-settings" ? " active" : ""}`}
+                onClick={() => { navigate("/admin/email-settings"); setMobileOpen(false); }}
+                title="Email Settings"
+              >
+                <Mail size={15} />
+                <span className="navbar-link-label">Emails</span>
+              </button>
+              <button
+                className={`btn btn-ghost btn-sm${location.pathname === "/admin/system-health" ? " active" : ""}`}
+                onClick={() => { navigate("/admin/system-health"); setMobileOpen(false); }}
+                title="System Health"
+              >
+                <Cpu size={15} />
+                <span className="navbar-link-label">Health</span>
               </button>
             </>
           )}
