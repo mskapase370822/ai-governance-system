@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield, Activity, FileText } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, FileText, BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -52,6 +52,14 @@ export function Navbar() {
           {/* Admin links */}
           {role === "admin" && (
             <>
+              <button
+                className={`btn btn-ghost btn-sm${location.pathname === "/admin/activity" ? " active" : ""}`}
+                onClick={() => { navigate("/admin/activity"); setMobileOpen(false); }}
+                title="Analytics"
+              >
+                <BarChart3 size={15} />
+                <span className="navbar-link-label">Analytics</span>
+              </button>
               <button
                 className={`btn btn-ghost btn-sm${location.pathname === "/admin/reports" ? " active" : ""}`}
                 onClick={() => { navigate("/admin/reports"); setMobileOpen(false); }}
