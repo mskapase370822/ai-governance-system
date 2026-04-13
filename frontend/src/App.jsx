@@ -6,12 +6,8 @@ import { SessionExpiryWarning } from "./components/SessionExpiryWarning";
 import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import AdminActivityDashboard from "./pages/AdminActivityDashboard";
-import AdminEmailSettings from "./pages/AdminEmailSettings";
-import AdminSystemHealth from "./pages/AdminSystemHealth";
-import AdminReportsPage from "./pages/AdminReportsPage";
-import ManagerDashboard from "./pages/ManagerDashboard";
 import ActivityMonitoring from "./pages/ActivityMonitoring";
+import AdminReportsPage from "./pages/AdminReportsPage";
 
 function App() {
   return (
@@ -32,16 +28,6 @@ function App() {
               }
             />
             <Route
-              path="/manager"
-              element={
-                <ProtectedRoute allowedRoles={["Manager"]}>
-                  <ErrorBoundary>
-                    <ManagerDashboard />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
               path="/admin"
               element={
                 <ProtectedRoute allowedRoles={["Admin"]}>
@@ -52,31 +38,11 @@ function App() {
               }
             />
             <Route
-              path="/admin/activity"
+              path="/activity/monitoring"
               element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
+                <ProtectedRoute allowedRoles={["Employee", "Admin"]}>
                   <ErrorBoundary>
-                    <AdminActivityDashboard />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/email-settings"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminEmailSettings />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/system-health"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminSystemHealth />
+                    <ActivityMonitoring />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }
@@ -87,16 +53,6 @@ function App() {
                 <ProtectedRoute allowedRoles={["Admin"]}>
                   <ErrorBoundary>
                     <AdminReportsPage />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/activity/monitoring"
-              element={
-                <ProtectedRoute allowedRoles={["Employee", "Admin", "Manager"]}>
-                  <ErrorBoundary>
-                    <ActivityMonitoring />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }

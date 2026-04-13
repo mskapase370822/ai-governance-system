@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, AlertTriangle, ShieldCheck, ShieldAlert, ChevronDown, Info } from "lucide-react";
+import { Send, AlertTriangle, ShieldCheck, ShieldAlert, ChevronDown } from "lucide-react";
 import { submitActionAPI, confirmActionAPI } from "../services/api";
 import { RiskBadge } from "./RiskBadge";
 
@@ -9,7 +9,6 @@ export function PromptForm({ onLogCreated }) {
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [showDetails, setShowDetails] = useState(false);
-  const [showExplainability, setShowExplainability] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -75,9 +74,6 @@ export function PromptForm({ onLogCreated }) {
     if (status === "warned") return "result-warned";
     return "result-blocked";
   };
-
-  const numericScore = result?.riskAnalysis?.numericScore;
-  const explainability = result?.explainability;
 
   return (
     <div className="prompt-form">
@@ -147,21 +143,18 @@ export function PromptForm({ onLogCreated }) {
             {result.decision?.systemResponse}
           </div>
 
-          {/* Risk score bar (numeric 0-100) */}
-          {numericScore !== undefined && (
-            <div className="action-result-meta">
-              <span>Risk Score: <strong>{numericScore} / 100</strong></span>
-              <span>Confidence: {result.riskAnalysis?.confidence != null ? `${(result.riskAnalysis.confidence * 100).toFixed(0)}%` : "—"}</span>
-              <span>Category: {result.riskAnalysis?.category || "general"}</span>
-            </div>
-          )}
+          {/* Confidence bar */}
+          <div className="action-result-meta">
+            <span>Confidence: {result.riskAnalysis?.confidence != null ? `${(result.riskAnalysis.confidence * 100).toFixed(0)}%` : "—"}</span>
+            <span>Category: {result.riskAnalysis?.category || "general"}</span>
+          </div>
           <div className="confidence-bar">
             <div
               className={`confidence-fill ${
-                (numericScore ?? 0) > 70 ? "high" :
-                (numericScore ?? 0) > 30 ? "medium" : "low"
+                result.riskAnalysis?.confidence > 0.7 ? "high" :
+                result.riskAnalysis?.confidence > 0.4 ? "medium" : "low"
               }`}
-              style={{ width: `${numericScore ?? 0}%` }}
+              style={{ width: `${(result.riskAnalysis?.confidence || 0) * 100}%` }}
             />
           </div>
 
@@ -189,44 +182,6 @@ export function PromptForm({ onLogCreated }) {
                     <li key={i}>{d}</li>
                   ))}
                 </ul>
-              )}
-            </div>
-          )}
-
-          {/* Explainability toggle */}
-          {explainability && (
-            <div className="risk-details-section">
-              <button
-                className="risk-details-toggle"
-                onClick={() => setShowExplainability(!showExplainability)}
-              >
-                <Info size={14} />
-                {showExplainability ? "Hide" : "Show"} Explainability
-              </button>
-              {showExplainability && (
-                <div className="explainability-panel" style={{ marginTop: 8, fontSize: 13 }}>
-                  <p style={{ marginBottom: 6 }}><strong>Summary:</strong> {explainability.summary}</p>
-                  {explainability.recommendations?.length > 0 && (
-                    <div>
-                      <strong>Recommendations:</strong>
-                      <ul className="risk-details-list">
-                        {explainability.recommendations.map((r, i) => (
-                          <li key={i}>{r}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {explainability.topContributors?.length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      <strong>Top Contributing Factors:</strong>
-                      <ul className="risk-details-list">
-                        {explainability.topContributors.map((c, i) => (
-                          <li key={i}>{c.explanation}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
               )}
             </div>
           )}
