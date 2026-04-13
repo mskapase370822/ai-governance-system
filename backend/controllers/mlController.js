@@ -1,6 +1,7 @@
 import riskModel from "../ml/riskModel.js";
 import UserActivity from "../models/UserActivity.js";
 import { detectRisk } from "../utils/detectRisk.js";
+import { computeRiskScore } from "../core/riskEngine/RiskScorer.js";
 
 /**
  * POST /api/ml/train
@@ -58,7 +59,8 @@ export const getModelStats = async (req, res) => {
 
 /**
  * POST /api/ml/analyze-risk
- * AI-based risk classification. Returns { risk, score, reason }.
+ * AI-based risk classification using the weighted rule engine.
+ * Returns { risk, score, reason, riskDetails }.
  */
 export const analyzeRiskEndpoint = async (req, res) => {
   try {
@@ -68,32 +70,31 @@ export const analyzeRiskEndpoint = async (req, res) => {
     }
     const trimmed = text.trim();
 
-    // Run the JS neural-network model
-    const prediction = riskModel.predict(trimmed);
+    // Use the comprehensive weighted rule-based scoring engine for accurate results
+    const assessment = computeRiskScore(trimmed, { userRole: req.user?.role });
 
-    // Run rule-based engine to get a human-readable reason
-    const ruleResult = detectRisk(trimmed);
+    const riskLabel = assessment.riskLevel.toLowerCase(); // "low" | "medium" | "high"
 
-    // Take the higher risk level
-    const riskOrder = { LOW: 1, MEDIUM: 2, HIGH: 3 };
-    const finalRiskLevel =
-      riskOrder[prediction.riskLevel] >= riskOrder[ruleResult.riskLevel]
-        ? prediction.riskLevel
-        : ruleResult.riskLevel;
-
-    const finalScore = parseFloat(
-      Math.max(prediction.confidence, ruleResult.confidence).toFixed(2)
-    );
-
-    const finalReason =
-      ruleResult.reason !== "Action appears safe — no risk indicators found."
-        ? ruleResult.reason
-        : `ML model detected ${finalRiskLevel.toLowerCase()} risk pattern.`;
+    // Build a human-readable reason
+    let reason;
+    if (assessment.triggeredRules.length === 0) {
+      reason = "No risk indicators detected — input appears safe.";
+    } else {
+      const topFactors = assessment.triggeredRules
+        .sort((a, b) => b.contribution - a.contribution)
+        .slice(0, 3)
+        .map((r) => r.ruleName);
+      reason = `Risk indicators found: ${topFactors.join(", ")}. Score: ${assessment.score}/100.`;
+    }
 
     res.json({
-      risk: finalRiskLevel.toLowerCase(),
-      score: finalScore,
-      reason: finalReason,
+      risk: riskLabel,
+      score: assessment.score,
+      confidence: assessment.confidence,
+      reason,
+      riskDetails: assessment.riskDetails,
+      riskLevel: assessment.riskLevel,
+      category: assessment.category,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

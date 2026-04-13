@@ -37,10 +37,10 @@ export default function Login() {
       // Case-insensitive role routing
       const r = (userRole || "").toLowerCase();
       if (r === "admin") navigate("/admin");
-      else if (r === "manager") navigate("/manager");
       else navigate("/dashboard");
     } catch (err) {
       const message =
+        err.response?.data?.details?.[0]?.message ||
         err.response?.data?.error ||
         err.response?.data?.errors?.[0]?.msg ||
         "Something went wrong. Please try again.";
@@ -90,9 +90,11 @@ export default function Login() {
               <label className="label" htmlFor="login-role">Role</label>
               <select id="login-role" className="select" value={role} onChange={(e) => setRole(e.target.value)}>
                 <option value="Employee">Employee</option>
-                <option value="Manager">Manager</option>
                 <option value="Admin">Admin</option>
               </select>
+              <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 8 }}>
+                Password requirements: at least 8 characters, one uppercase letter, and one number.
+              </p>
             </div>
           )}
 

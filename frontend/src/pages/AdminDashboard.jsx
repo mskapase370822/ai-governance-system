@@ -516,11 +516,35 @@ export default function AdminDashboard() {
                         {analyzeResult.risk}
                       </div>
                     </div>
+                    {analyzeResult.score !== undefined && (
+                      <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 120 }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Score</div>
+                        <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                          {analyzeResult.score}<span style={{ fontSize: "0.9rem", fontWeight: 400, color: "var(--text-muted)" }}>/100</span>
+                        </div>
+                      </div>
+                    )}
+                    {analyzeResult.confidence !== undefined && (
+                      <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 120 }}>
+                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Confidence</div>
+                        <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
+                          {(analyzeResult.confidence * 100).toFixed(0)}<span style={{ fontSize: "0.9rem", fontWeight: 400, color: "var(--text-muted)" }}>%</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reason</div>
                     <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, fontSize: "0.9rem" }}>{analyzeResult.reason}</p>
                   </div>
+                  {analyzeResult.riskDetails?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Risk Indicators</div>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.85rem", color: "var(--text-secondary)", display: "grid", gap: 4 }}>
+                        {analyzeResult.riskDetails.map((d, i) => <li key={i}>{d}</li>)}
+                      </ul>
+                    </div>
+                  )}
                   <div style={{ display: "flex", gap: 8 }}>
                     <button className="btn btn-ghost btn-sm" onClick={() => { setAnalyzeText(""); setAnalyzeResult(null); }}>
                       Clear
