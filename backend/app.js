@@ -52,12 +52,18 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS
-const allowedOrigins = config.frontendUrl.split(",").map((o) => o.trim());
+// CORS — build the allowed-origins set, and automatically mirror any
+// "localhost" entry as "127.0.0.1" (and vice-versa) so both work in dev.
+const _rawOrigins = config.frontendUrl.split(",").map((o) => o.trim());
+const allowedOrigins = new Set(_rawOrigins);
+_rawOrigins.forEach((o) => {
+  if (o.includes("localhost")) allowedOrigins.add(o.replace("localhost", "127.0.0.1"));
+  if (o.includes("127.0.0.1")) allowedOrigins.add(o.replace("127.0.0.1", "localhost"));
+});
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.has(origin)) return callback(null, true);
     callback(new Error(`CORS: origin '${origin}' not allowed`));
   },
   credentials: true,

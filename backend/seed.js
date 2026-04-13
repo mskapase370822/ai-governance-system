@@ -20,7 +20,7 @@ async function seed() {
 
   await User.create([
     { username: "admin", password, role: "Admin" },
-    { username: "manager1", password, role: "Manager" },
+    { username: "manager1", password, role: "Admin" },
     { username: "employee1", password, role: "Employee" },
     { username: "employee2", password, role: "Employee" },
   ]);
