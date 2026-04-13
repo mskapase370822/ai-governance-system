@@ -9,13 +9,12 @@ import { RiskFilter } from "../components/RiskFilter";
 import {
   FileText, ShieldAlert, Users, Activity, AlertTriangle,
   BarChart3, Bell, CheckCircle, Clock, XCircle, Zap,
-  Brain, Flag, ShieldOff,
+  Flag, ShieldOff,
 } from "lucide-react";
 import {
   getDashboardStatsAPI, getAllLogsAPI, getPendingApprovalsAPI,
   getAlertsAPI,
   getAllActivitiesAPI, getFilteredActivitiesAPI, getActivityStatsAPI,
-  analyzeRiskAPI,
 } from "../services/api";
 import { initializeSocket, disconnectSocket } from "../services/websocket";
 import {
@@ -28,7 +27,6 @@ const TABS = [
   { id: "logs",        label: "Audit Logs",  icon: FileText    },
   { id: "approvals",   label: "Approvals",   icon: CheckCircle },
   { id: "alerts",      label: "Alerts",      icon: Bell        },
-  { id: "ai_risk",     label: "AI Risk",     icon: Brain       },
   { id: "activities",  label: "Activities",  icon: Activity    },
 ];
 
@@ -54,12 +52,6 @@ export default function AdminDashboard() {
   const [activityPage, setActivityPage] = useState(1);
   const [activityStats, setActivityStats] = useState(null);
   const [activityLoading, setActivityLoading] = useState(false);
-
-  // AI Risk tab state
-  const [analyzeText, setAnalyzeText] = useState("");
-  const [analyzeResult, setAnalyzeResult] = useState(null);
-  const [analyzeLoading, setAnalyzeLoading] = useState(false);
-  const [analyzeError, setAnalyzeError] = useState("");
 
   const fetchStats = useCallback(async () => {
     try {
@@ -166,8 +158,12 @@ export default function AdminDashboard() {
       fetchActivityStats();
     });
 
-    socket.on("approval_request", () => {
+    socket.on("approval_request", (data) => {
+      const alertData = { ...data, id: Date.now() + Math.random(), type: "approval_request" };
+      setToasts((prev) => [...prev, alertData]);
+      setUnreadAlerts((prev) => prev + 1);
       fetchApprovals();
+      fetchStats();
     });
 
     socket.on("approval_updated", () => {
@@ -180,22 +176,6 @@ export default function AdminDashboard() {
 
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((a) => a.id !== id));
-  };
-
-  const handleAnalyzeRisk = async (e) => {
-    e.preventDefault();
-    if (!analyzeText.trim()) return;
-    setAnalyzeLoading(true);
-    setAnalyzeResult(null);
-    setAnalyzeError("");
-    try {
-      const res = await analyzeRiskAPI(analyzeText.trim());
-      setAnalyzeResult(res.data);
-    } catch (err) {
-      setAnalyzeError(err.response?.data?.error || "Analysis failed. Please try again.");
-    } finally {
-      setAnalyzeLoading(false);
-    }
   };
 
   // Chart data
@@ -460,99 +440,6 @@ export default function AdminDashboard() {
                 })
               )}
             </div>
-          </div>
-        )}
-
-        {/* === AI RISK TAB === */}
-        {activeTab === "ai_risk" && (
-          <div>
-            <div className="card" style={{ marginBottom: 24 }}>
-              <div className="card-title" style={{ marginBottom: 16 }}>
-                <Brain size={18} />
-                AI-Based Risk Classifier
-              </div>
-              <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginBottom: 16 }}>
-                Enter any action or prompt to get an instant AI risk classification with confidence score and reason.
-              </p>
-              <form onSubmit={handleAnalyzeRisk}>
-                <textarea
-                  className="textarea"
-                  rows={4}
-                  placeholder="e.g. DROP TABLE users; or export all customer data to external server..."
-                  value={analyzeText}
-                  onChange={(e) => setAnalyzeText(e.target.value)}
-                  style={{ marginBottom: 12 }}
-                />
-                {analyzeError && (
-                  <div className="login-error" style={{ marginBottom: 12 }}>{analyzeError}</div>
-                )}
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={analyzeLoading || !analyzeText.trim()}
-                >
-                  {analyzeLoading ? <div className="spinner" /> : <Brain size={15} />}
-                  Analyze Risk
-                </button>
-              </form>
-            </div>
-
-            {analyzeResult && (
-              <div className="card">
-                <div className="card-title" style={{ marginBottom: 16 }}>
-                  <Zap size={18} />
-                  Analysis Result
-                </div>
-                <div style={{ display: "grid", gap: 16 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                    <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 140 }}>
-                      <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Risk Level</div>
-                      <div style={{
-                        fontSize: "1.6rem", fontWeight: 700,
-                        color: analyzeResult.risk === "high" ? "var(--risk-high)" :
-                               analyzeResult.risk === "medium" ? "var(--risk-medium)" : "var(--risk-low)",
-                        textTransform: "uppercase",
-                      }}>
-                        {analyzeResult.risk}
-                      </div>
-                    </div>
-                    {analyzeResult.score !== undefined && (
-                      <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 120 }}>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Score</div>
-                        <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                          {analyzeResult.score}<span style={{ fontSize: "0.9rem", fontWeight: 400, color: "var(--text-muted)" }}>/100</span>
-                        </div>
-                      </div>
-                    )}
-                    {analyzeResult.confidence !== undefined && (
-                      <div style={{ textAlign: "center", padding: "16px 24px", borderRadius: 12, background: "var(--bg-card-hover)", minWidth: 120 }}>
-                        <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Confidence</div>
-                        <div style={{ fontSize: "1.6rem", fontWeight: 700, color: "var(--text-primary)" }}>
-                          {(analyzeResult.confidence * 100).toFixed(0)}<span style={{ fontSize: "0.9rem", fontWeight: 400, color: "var(--text-muted)" }}>%</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em" }}>Reason</div>
-                    <p style={{ color: "var(--text-secondary)", lineHeight: 1.6, fontSize: "0.9rem" }}>{analyzeResult.reason}</p>
-                  </div>
-                  {analyzeResult.riskDetails?.length > 0 && (
-                    <div>
-                      <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Risk Indicators</div>
-                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: "0.85rem", color: "var(--text-secondary)", display: "grid", gap: 4 }}>
-                        {analyzeResult.riskDetails.map((d, i) => <li key={i}>{d}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => { setAnalyzeText(""); setAnalyzeResult(null); }}>
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         )}
 

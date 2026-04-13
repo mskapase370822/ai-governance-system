@@ -6,11 +6,10 @@ const alertSchema = new mongoose.Schema({
   userRole: { type: String },
   action: { type: String },
   riskLevel: { type: String, enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
-  confidence: { type: Number },
   reason: { type: String },
   type: {
     type: String,
-    enum: ["risk_alert", "anomaly_alert", "policy_violation", "approval_request"],
+    enum: ["risk_alert", "anomaly_alert", "policy_violation", "approval_request", "rejection"],
     default: "risk_alert",
   },
   isRead: { type: Boolean, default: false },
