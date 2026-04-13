@@ -16,7 +16,6 @@ export function Navbar() {
 
   const getDashboardPath = () => {
     if (user?.role === "Admin") return "/admin";
-    if ((user?.role || "").toLowerCase() === "manager") return "/manager";
     return "/dashboard";
   };
 
