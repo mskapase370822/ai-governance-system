@@ -8,6 +8,7 @@ import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminActivityDashboard from "./pages/AdminActivityDashboard";
 import AdminReportsPage from "./pages/AdminReportsPage";
+import ManagerDashboard from "./pages/ManagerDashboard";
 import ActivityMonitoring from "./pages/ActivityMonitoring";
 
 function App() {
@@ -24,6 +25,16 @@ function App() {
                 <ProtectedRoute allowedRoles={["Employee"]}>
                   <ErrorBoundary>
                     <UserDashboard />
+                  </ErrorBoundary>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/manager"
+              element={
+                <ProtectedRoute allowedRoles={["Manager"]}>
+                  <ErrorBoundary>
+                    <ManagerDashboard />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }
@@ -61,7 +72,7 @@ function App() {
             <Route
               path="/activity/monitoring"
               element={
-                <ProtectedRoute allowedRoles={["Employee", "Admin"]}>
+                <ProtectedRoute allowedRoles={["Employee", "Admin", "Manager"]}>
                   <ErrorBoundary>
                     <ActivityMonitoring />
                   </ErrorBoundary>
