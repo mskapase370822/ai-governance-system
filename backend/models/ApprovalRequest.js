@@ -7,10 +7,6 @@ const approvalRequestSchema = new mongoose.Schema({
   requestedByRole: { type: String },
   // What action
   action: { type: String, required: true },
-  riskLevel: { type: String, enum: ["MEDIUM", "HIGH"], required: true },
-  confidence: { type: Number },
-  reason: { type: String },
-  riskDetails: [{ type: String }],
   // Related log
   logId: { type: mongoose.Schema.Types.ObjectId, ref: "Log" },
   // Approval status
@@ -26,7 +22,6 @@ const approvalRequestSchema = new mongoose.Schema({
   reviewedAt: { type: Date },
   // Timestamps
   createdAt: { type: Date, default: Date.now },
-  expiresAt: { type: Date, default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) }, // 24h expiry
 });
 
 approvalRequestSchema.index({ status: 1, createdAt: -1 });

@@ -36,8 +36,9 @@ export default function UserDashboard() {
 
   const handleLogCreated = (newLog) => {
     setLogs((prev) => [newLog, ...prev.filter((log) => log._id !== newLog._id)]);
-    // Refresh stats
+    // Refresh stats and approvals after a new submission
     getUserStatsAPI().then((res) => setStats(res.data)).catch(() => {});
+    getMyApprovalsAPI().then((res) => setApprovals(res.data)).catch(() => {});
   };
 
   return (

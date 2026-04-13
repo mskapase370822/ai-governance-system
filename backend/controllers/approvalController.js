@@ -1,4 +1,5 @@
 import ApprovalRequest from "../models/ApprovalRequest.js";
+import Alert from "../models/Alert.js";
 import Log from "../models/Log.js";
 import { writeAuditLog } from "../utils/auditLogger.js";
 
@@ -98,7 +99,7 @@ export const approveRequest = async (req, res) => {
 };
 
 /**
- * Deny a request (Admin only)
+ * Deny/Reject a request (Admin only)
  */
 export const denyRequest = async (req, res) => {
   try {
@@ -121,9 +122,18 @@ export const denyRequest = async (req, res) => {
     if (approval.logId) {
       await Log.findByIdAndUpdate(approval.logId, {
         status: "denied",
-        systemResponse: `Denied by Admin ${req.user.username}${reviewNote ? `: ${reviewNote}` : ""}`,
+        systemResponse: `Rejected by Admin ${req.user.username}${reviewNote ? `: ${reviewNote}` : ""}`,
       });
     }
+
+    // Create rejection alert
+    await Alert.create({
+      userId:   approval.requestedBy,
+      username: approval.requestedByUsername,
+      action:   approval.action?.substring(0, 200),
+      type:     "rejection",
+      relatedLogId: approval.logId,
+    });
 
     // Notify via WebSocket
     const io = req.app.get("io");
@@ -137,9 +147,12 @@ export const denyRequest = async (req, res) => {
       });
     }
 
-    await writeAuditLog(req.user, "DENY_APPROVAL", "ApprovalRequest", approval._id, { requestedBy: approval.requestedByUsername, reviewNote: reviewNote || "" }, req.ip);
-    res.json({ message: "Request denied", approval });
+    await writeAuditLog(req.user, "REJECT_APPROVAL", "ApprovalRequest", approval._id, { requestedBy: approval.requestedByUsername, reviewNote: reviewNote || "" }, req.ip);
+    res.json({ message: "Request rejected", approval });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Alias for denyRequest to support /reject route
+export const rejectRequest = denyRequest;

@@ -1,15 +1,12 @@
 import { useState } from "react";
-import { Send, AlertTriangle, ShieldCheck, ShieldAlert, ChevronDown, Info } from "lucide-react";
-import { submitActionAPI, confirmActionAPI } from "../services/api";
-import { RiskBadge } from "./RiskBadge";
+import { Send, AlertTriangle, ShieldCheck, ShieldAlert, Clock } from "lucide-react";
+import { submitActionAPI } from "../services/api";
 
 export function PromptForm({ onLogCreated }) {
   const [action, setAction] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const [showDetails, setShowDetails] = useState(false);
-  const [showExplainability, setShowExplainability] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,9 +19,7 @@ export function PromptForm({ onLogCreated }) {
     try {
       const res = await submitActionAPI({ action });
       setResult(res.data);
-      if (res.data.decision?.status === "allowed") {
-        setAction("");
-      }
+      setAction("");
       onLogCreated?.(res.data.log);
     } catch (err) {
       setError(
@@ -35,49 +30,21 @@ export function PromptForm({ onLogCreated }) {
     }
   };
 
-  const handleConfirm = async () => {
-    if (!result?.log?._id) return;
-    setLoading(true);
-    try {
-      const res = await confirmActionAPI(result.log._id);
-      setResult((prev) => ({
-        ...prev,
-        log: res.data.log,
-        decision: {
-          ...prev?.decision,
-          status: res.data.log.status,
-          systemResponse: res.data.log.systemResponse,
-        },
-      }));
-      setAction("");
-      onLogCreated?.(res.data.log);
-    } catch (err) {
-      setError(err.response?.data?.error || "Failed to confirm input.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const getStatusIcon = (status) => {
     switch (status) {
-      case "allowed": return <ShieldCheck size={18} style={{ color: "var(--risk-low)" }} />;
-      case "warned": return <AlertTriangle size={18} style={{ color: "var(--risk-medium)" }} />;
-      case "blocked":
-      case "pending_approval":
-      case "denied":
-        return <ShieldAlert size={18} style={{ color: "var(--risk-high)" }} />;
-      default: return null;
+      case "pending_approval": return <Clock size={18} style={{ color: "var(--risk-medium)" }} />;
+      case "blocked":          return <ShieldAlert size={18} style={{ color: "var(--risk-high)" }} />;
+      case "approved":         return <ShieldCheck size={18} style={{ color: "var(--risk-low)" }} />;
+      case "denied":           return <ShieldAlert size={18} style={{ color: "var(--risk-high)" }} />;
+      default:                 return null;
     }
   };
 
   const getStatusClass = (status) => {
-    if (status === "allowed" || status === "approved") return "result-allowed";
-    if (status === "warned") return "result-warned";
+    if (status === "approved") return "result-allowed";
+    if (status === "pending_approval") return "result-warned";
     return "result-blocked";
   };
-
-  const numericScore = result?.riskAnalysis?.numericScore;
-  const explainability = result?.explainability;
 
   return (
     <div className="prompt-form">
@@ -87,7 +54,7 @@ export function PromptForm({ onLogCreated }) {
           <textarea
             id="action-text"
             className="textarea"
-            placeholder="Type what the user wants to do. Example: delete records, export user data, update config, run SQL..."
+            placeholder="Type what you want to do. Example: delete records, export user data, update config, run SQL..."
             value={action}
             onChange={(e) => setAction(e.target.value)}
             required
@@ -112,142 +79,39 @@ export function PromptForm({ onLogCreated }) {
           {loading ? (
             <>
               <div className="spinner"></div>
-              Logging & checking risk...
+              Submitting...
             </>
           ) : (
             <>
               <Send size={16} />
-              Submit Input
+              Submit for Approval
             </>
           )}
         </button>
       </form>
 
-      {/* Risk Result Panel */}
+      {/* Submission Result */}
       {result && (
         <div className={`action-result ${getStatusClass(result.decision?.status)}`}>
-          {/* Status header */}
           <div className="action-result-header">
             <div className="action-result-status">
               {getStatusIcon(result.decision?.status)}
               <span className="action-result-status-text">
-                {result.decision?.status === "allowed" && "✅ Input Allowed"}
-                {result.decision?.status === "warned" && "⚠️ Warning — Confirmation Required"}
-                {result.decision?.status === "blocked" && "🚫 Input Blocked"}
-                {result.decision?.status === "pending_approval" && "⏳ Pending Admin Approval"}
+                {result.decision?.status === "pending_approval" && "⏳ Submitted — Awaiting Admin Approval"}
+                {result.decision?.status === "blocked" && "🚫 Action Blocked by Policy"}
                 {result.decision?.status === "approved" && "✅ Approved by Admin"}
-                {result.decision?.status === "denied" && "❌ Denied by Admin"}
+                {result.decision?.status === "denied" && "❌ Rejected by Admin"}
               </span>
             </div>
-            <RiskBadge level={result.riskAnalysis?.riskLevel} />
           </div>
 
-          {/* System response */}
           <div className="action-result-message">
             {result.decision?.systemResponse}
           </div>
 
-          {/* Risk score bar (numeric 0-100) */}
-          {numericScore !== undefined && (
-            <div className="action-result-meta">
-              <span>Risk Score: <strong>{numericScore} / 100</strong></span>
-              <span>Confidence: {result.riskAnalysis?.confidence != null ? `${(result.riskAnalysis.confidence * 100).toFixed(0)}%` : "—"}</span>
-              <span>Category: {result.riskAnalysis?.category || "general"}</span>
-            </div>
-          )}
-          <div className="confidence-bar">
-            <div
-              className={`confidence-fill ${
-                (numericScore ?? 0) > 70 ? "high" :
-                (numericScore ?? 0) > 30 ? "medium" : "low"
-              }`}
-              style={{ width: `${numericScore ?? 0}%` }}
-            />
-          </div>
-
-          {/* Anomaly warning */}
-          {result.anomaly?.isAnomaly && (
-            <div className="anomaly-warning">
-              <AlertTriangle size={14} />
-              <span>Anomaly Detected: {result.anomaly.anomalyReason}</span>
-            </div>
-          )}
-
-          {/* Risk details toggle */}
-          {result.riskAnalysis?.riskDetails?.length > 0 && (
-            <div className="risk-details-section">
-              <button
-                className="risk-details-toggle"
-                onClick={() => setShowDetails(!showDetails)}
-              >
-                <ChevronDown size={14} style={{ transform: showDetails ? "rotate(180deg)" : "none", transition: "0.2s" }} />
-                {showDetails ? "Hide" : "Show"} Risk Details ({result.riskAnalysis.riskDetails.length})
-              </button>
-              {showDetails && (
-                <ul className="risk-details-list">
-                  {result.riskAnalysis.riskDetails.map((d, i) => (
-                    <li key={i}>{d}</li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          {/* Explainability toggle */}
-          {explainability && (
-            <div className="risk-details-section">
-              <button
-                className="risk-details-toggle"
-                onClick={() => setShowExplainability(!showExplainability)}
-              >
-                <Info size={14} />
-                {showExplainability ? "Hide" : "Show"} Explainability
-              </button>
-              {showExplainability && (
-                <div className="explainability-panel" style={{ marginTop: 8, fontSize: 13 }}>
-                  <p style={{ marginBottom: 6 }}><strong>Summary:</strong> {explainability.summary}</p>
-                  {explainability.recommendations?.length > 0 && (
-                    <div>
-                      <strong>Recommendations:</strong>
-                      <ul className="risk-details-list">
-                        {explainability.recommendations.map((r, i) => (
-                          <li key={i}>{r}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {explainability.topContributors?.length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      <strong>Top Contributing Factors:</strong>
-                      <ul className="risk-details-list">
-                        {explainability.topContributors.map((c, i) => (
-                          <li key={i}>{c.explanation}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Confirm button for warned actions */}
-          {result.decision?.status === "warned" && (
-            <div className="action-result-actions">
-              <button className="btn btn-primary btn-sm" onClick={handleConfirm} disabled={loading}>
-                <ShieldCheck size={14} />
-                Confirm & Proceed
-              </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setResult(null)}>
-                Cancel
-              </button>
-            </div>
-          )}
-
-          {/* Pending approval info */}
           {result.decision?.status === "pending_approval" && result.approvalRequest && (
             <div className="action-result-pending">
-              Your request has been submitted for Admin approval. Request ID: {result.approvalRequest.id?.slice(-6)}
+              Request ID: {result.approvalRequest.id?.slice(-6)} — Your request is now visible in "My Approval Requests".
             </div>
           )}
         </div>
@@ -255,3 +119,4 @@ export function PromptForm({ onLogCreated }) {
     </div>
   );
 }
+

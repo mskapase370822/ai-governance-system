@@ -1,7 +1,7 @@
 import express from "express";
 import {
   getPendingApprovals, getAllApprovals, getMyApprovals,
-  approveRequest, denyRequest,
+  approveRequest, denyRequest, rejectRequest,
 } from "../controllers/approvalController.js";
 import { protect, adminOnly } from "../middleware/authMiddleware.js";
 
@@ -12,5 +12,6 @@ router.get("/all", protect, adminOnly, getAllApprovals);
 router.get("/me", protect, getMyApprovals);
 router.put("/:id/approve", protect, adminOnly, approveRequest);
 router.put("/:id/deny", protect, adminOnly, denyRequest);
+router.put("/:id/reject", protect, adminOnly, rejectRequest);
 
 export default router;

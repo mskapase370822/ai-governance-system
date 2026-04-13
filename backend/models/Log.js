@@ -5,7 +5,6 @@ const logSchema = new mongoose.Schema({
   action: { type: String, required: true },
   category: { type: String, default: "general" }, // sql, file-ops, config, access, data, general
   riskLevel: { type: String, enum: ["LOW", "MEDIUM", "HIGH"], required: true },
-  confidence: { type: Number, default: 0 },
   reason: { type: String, default: "" },
   riskDetails: [{ type: String }], // array of matched patterns/reasons
   // Action control
