@@ -7,8 +7,6 @@ import Login from "./pages/Login";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminActivityDashboard from "./pages/AdminActivityDashboard";
-import AdminEmailSettings from "./pages/AdminEmailSettings";
-import AdminSystemHealth from "./pages/AdminSystemHealth";
 import AdminReportsPage from "./pages/AdminReportsPage";
 import ManagerDashboard from "./pages/ManagerDashboard";
 import ActivityMonitoring from "./pages/ActivityMonitoring";
@@ -57,26 +55,6 @@ function App() {
                 <ProtectedRoute allowedRoles={["Admin"]}>
                   <ErrorBoundary>
                     <AdminActivityDashboard />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/email-settings"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminEmailSettings />
-                  </ErrorBoundary>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin/system-health"
-              element={
-                <ProtectedRoute allowedRoles={["Admin"]}>
-                  <ErrorBoundary>
-                    <AdminSystemHealth />
                   </ErrorBoundary>
                 </ProtectedRoute>
               }

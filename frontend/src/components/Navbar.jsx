@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { LogOut, Menu, X, Shield, Activity, FileText, BarChart3, Mail, Cpu } from "lucide-react";
+import { LogOut, Menu, X, Shield, Activity, FileText, BarChart3 } from "lucide-react";
 import { useState } from "react";
 
 export function Navbar() {
@@ -67,22 +67,6 @@ export function Navbar() {
               >
                 <FileText size={15} />
                 <span className="navbar-link-label">Reports</span>
-              </button>
-              <button
-                className={`btn btn-ghost btn-sm${location.pathname === "/admin/email-settings" ? " active" : ""}`}
-                onClick={() => { navigate("/admin/email-settings"); setMobileOpen(false); }}
-                title="Email Settings"
-              >
-                <Mail size={15} />
-                <span className="navbar-link-label">Emails</span>
-              </button>
-              <button
-                className={`btn btn-ghost btn-sm${location.pathname === "/admin/system-health" ? " active" : ""}`}
-                onClick={() => { navigate("/admin/system-health"); setMobileOpen(false); }}
-                title="System Health"
-              >
-                <Cpu size={15} />
-                <span className="navbar-link-label">Health</span>
               </button>
             </>
           )}
