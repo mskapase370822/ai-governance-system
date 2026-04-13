@@ -179,8 +179,12 @@ export const RULES = [
     weight: 0.10,
     severity: "medium",
     test(text) {
-      const codeRegex = /[{}();=<>]|(\b(function|const|let|var|import|class|def|return|import os|subprocess|System\.exec)\b)/i;
-      if (!codeRegex.test(text)) return { matched: false, score: 0, evidence: [] };
+      const codeRegex = /[{}();=<>]|(\b(function|const|let|var|class|def|return|subprocess)\b)/i;
+      const importOsRegex = /import\s+os\b/i;
+      const systemExecRegex = /System\s*\.\s*exec\b/i;
+      if (!codeRegex.test(text) && !importOsRegex.test(text) && !systemExecRegex.test(text)) {
+        return { matched: false, score: 0, evidence: [] };
+      }
       return {
         matched: true,
         score: 0.5,

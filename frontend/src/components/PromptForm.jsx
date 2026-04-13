@@ -161,7 +161,7 @@ export function PromptForm({ onLogCreated }) {
                 (numericScore ?? 0) > 70 ? "high" :
                 (numericScore ?? 0) > 30 ? "medium" : "low"
               }`}
-              style={{ width: `${numericScore ?? (result.riskAnalysis?.confidence || 0) * 100}%` }}
+              style={{ width: `${numericScore ?? 0}%` }}
             />
           </div>
 

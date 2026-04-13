@@ -10,7 +10,7 @@ import express from "express";
 import { body } from "express-validator";
 import { protect }           from "../../middleware/authMiddleware.js";
 import { validateRequest }   from "../../middleware/validateRequest.js";
-import { submitLimiter }     from "../../core/security/RateLimiter.js";
+import { submitLimiter, apiLimiter }  from "../../core/security/RateLimiter.js";
 import { processPrompt }     from "../../services/PromptService.js";
 import Log                   from "../../models/Log.js";
 
