@@ -43,9 +43,7 @@ export default function Login() {
         err.response?.data?.details?.[0]?.message ||
         err.response?.data?.error ||
         err.response?.data?.errors?.[0]?.msg ||
-        (err.request && !err.response
-          ? "Cannot reach the server. Please check your connection or try again later."
-          : "Something went wrong. Please try again.");
+        "Something went wrong. Please try again.";
       setError(message);
     } finally {
       setLoading(false);
