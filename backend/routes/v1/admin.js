@@ -19,10 +19,9 @@ import Log                     from "../../models/Log.js";
 import Alert                   from "../../models/Alert.js";
 
 const router = express.Router();
-router.use(protect, adminOnly, apiLimiter);
 
-// GET /api/v1/admin/users
-router.get("/users", async (req, res, next) => {
+// ── GET /api/v1/admin/users ───────────────────────────────────────────────────
+router.get("/users", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const users = await User.find().select("-password").sort({ createdAt: -1 });
     res.json(users);
@@ -32,7 +31,7 @@ router.get("/users", async (req, res, next) => {
 });
 
 // PUT /api/v1/admin/users/:id/role
-router.put("/users/:id/role", async (req, res, next) => {
+router.put("/users/:id/role", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const { role } = req.body;
     const allowed  = ["admin", "employee", "manager"];
@@ -51,9 +50,11 @@ router.put("/users/:id/role", async (req, res, next) => {
 });
 
 // GET /api/v1/admin/audit-logs
-router.get("/audit-logs", async (req, res, next) => {
+router.get("/audit-logs", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
-    const { actorId, action, entity, startDate, endDate, page = 1, limit = 50 } = req.query;
+    const { actorId, action, entity, startDate, endDate } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const result = await AuditService.getAuditLogs({ actorId, action, entity, startDate, endDate, page, limit });
     res.json(result);
   } catch (err) {
@@ -62,34 +63,39 @@ router.get("/audit-logs", async (req, res, next) => {
 });
 
 // GET /api/v1/admin/prompt-logs
-router.get("/prompt-logs", async (req, res, next) => {
+router.get("/prompt-logs", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, riskLevel, minScore, maxScore } = req.query;
-    const query = {};
+    const ALLOWED_RISK_LEVELS = ["LOW", "MEDIUM", "HIGH"];
+    const riskLevel = ALLOWED_RISK_LEVELS.includes(req.query.riskLevel) ? req.query.riskLevel : undefined;
+    const page  = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const minScore = req.query.minScore !== undefined ? Math.max(0, Math.min(100, Number(req.query.minScore))) : undefined;
+    const maxScore = req.query.maxScore !== undefined ? Math.max(0, Math.min(100, Number(req.query.maxScore))) : undefined;
 
-    if (riskLevel && riskLevel !== "all") query.riskLevel = riskLevel;
-    if (minScore !== undefined) query.numericRiskScore = { $gte: Number(minScore) };
-    if (maxScore !== undefined) {
-      query.numericRiskScore = { ...query.numericRiskScore, $lte: Number(maxScore) };
+    const query = {};
+    if (riskLevel) query.riskLevel = riskLevel;
+    if (minScore !== undefined && !isNaN(minScore)) query.numericRiskScore = { $gte: minScore };
+    if (maxScore !== undefined && !isNaN(maxScore)) {
+      query.numericRiskScore = { ...query.numericRiskScore, $lte: maxScore };
     }
 
-    const skip  = (Number(page) - 1) * Number(limit);
+    const skip  = (page - 1) * limit;
     const total = await PromptLog.countDocuments(query);
     const logs  = await PromptLog
       .find(query)
       .sort({ timestamp: -1 })
       .skip(skip)
-      .limit(Number(limit))
+      .limit(limit)
       .populate("userId", "username role");
 
-    res.json({ logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+    res.json({ logs, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     next(err);
   }
 });
 
 // GET /api/v1/admin/system-stats
-router.get("/system-stats", async (req, res, next) => {
+router.get("/system-stats", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const [totalLogs, totalAlerts, unreadAlerts, blockedActions, avgScoreResult] = await Promise.all([
       Log.countDocuments(),

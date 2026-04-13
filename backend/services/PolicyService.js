@@ -36,8 +36,12 @@ export const createPolicy = async (data) => Policy.create(data);
  * @returns {Promise<Policy|null>}
  */
 export const updatePolicy = async (id, updates) => {
-  updates.updatedAt = new Date();
-  return Policy.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+  // Strip any MongoDB operator keys from user-provided updates to prevent injection
+  const safeUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([k]) => !k.startsWith("$"))
+  );
+  safeUpdates.updatedAt = new Date();
+  return Policy.findByIdAndUpdate(id, safeUpdates, { new: true, runValidators: true });
 };
 
 /**

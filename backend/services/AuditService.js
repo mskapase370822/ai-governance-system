@@ -20,7 +20,7 @@ export const getAuditLogs = async ({
   const query = {};
 
   if (actorId)   query["actor.id"] = actorId;
-  if (action)    query.action      = new RegExp(action, "i");
+  if (action)    query.action      = new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
   if (entity)    query.entity      = entity;
 
   if (startDate || endDate) {
@@ -31,13 +31,18 @@ export const getAuditLogs = async ({
 
   const skip  = (page - 1) * limit;
   const total = await AuditLog.countDocuments(query);
+
+  const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+  const safeSkip = (pageNum - 1) * limitNum;
+
   const logs  = await AuditLog
     .find(query)
     .sort({ timestamp: -1 })
-    .skip(skip)
-    .limit(limit);
+    .skip(safeSkip)
+    .limit(limitNum);
 
-  return { logs, total, page: Number(page), pages: Math.ceil(total / limit) };
+  return { logs, total, page: pageNum, pages: Math.ceil(total / limitNum) };
 };
 
 /**

@@ -44,7 +44,11 @@ const getEncryptionKey = () => {
     if (process.env.NODE_ENV === "production") {
       throw new Error("ENCRYPTION_KEY environment variable is required in production.");
     }
-    // In development, derive a stable key from a default phrase
+    // In development, log a prominent warning and derive a stable key
+    console.warn(
+      "⚠️  [Encryption] ENCRYPTION_KEY is not set. " +
+      "Using an insecure dev fallback. NEVER deploy this to production."
+    );
     return crypto.scryptSync("dev-fallback-key", "salt", KEY_LENGTH);
   }
   // If the key looks like hex (64 chars), use it directly; otherwise scrypt-derive it

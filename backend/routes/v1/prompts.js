@@ -51,7 +51,7 @@ router.post(
 );
 
 // ── PUT /api/v1/prompts/confirm/:logId ────────────────────────────────────────
-router.put("/confirm/:logId", protect, async (req, res, next) => {
+router.put("/confirm/:logId", protect, apiLimiter, async (req, res, next) => {
   try {
     const log = await Log.findById(req.params.logId);
     if (!log) return res.status(404).json({ error: "Log not found." });
@@ -74,22 +74,28 @@ router.put("/confirm/:logId", protect, async (req, res, next) => {
 });
 
 // ── GET /api/v1/prompts/ ──────────────────────────────────────────────────────
-router.get("/", protect, async (req, res, next) => {
+router.get("/", protect, apiLimiter, async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, riskLevel } = req.query;
-    const query = { userId: req.user._id };
-    if (riskLevel && riskLevel !== "all") query.riskLevel = riskLevel;
+    const ALLOWED_RISK_LEVELS = ["all", "LOW", "MEDIUM", "HIGH"];
+    const { riskLevel } = req.query;
+    const page  = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
 
-    const skip  = (Number(page) - 1) * Number(limit);
+    const query = { userId: req.user._id };
+    if (riskLevel && riskLevel !== "all" && ALLOWED_RISK_LEVELS.includes(riskLevel)) {
+      query.riskLevel = riskLevel;
+    }
+
+    const skip  = (page - 1) * limit;
     const total = await Log.countDocuments(query);
     const logs  = await Log
       .find(query)
       .sort({ timestamp: -1 })
       .skip(skip)
-      .limit(Number(limit))
+      .limit(limit)
       .populate("userId", "username role");
 
-    res.json({ logs, total, page: Number(page), pages: Math.ceil(total / Number(limit)) });
+    res.json({ logs, total, page, pages: Math.ceil(total / limit) });
   } catch (err) {
     next(err);
   }

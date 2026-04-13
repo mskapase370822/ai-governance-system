@@ -16,22 +16,28 @@ import Alert from "../models/Alert.js";
 export const getAlerts = async ({ type, riskLevel, isRead, page = 1, limit = 20 } = {}) => {
   const query = { isDismissed: false };
 
-  if (type)                        query.type      = type;
-  if (riskLevel)                   query.riskLevel = riskLevel;
+  // Allowlist validation to prevent NoSQL injection
+  const ALLOWED_TYPES      = ["risk_alert", "anomaly_alert", "policy_violation", "approval_request"];
+  const ALLOWED_RISK_LEVELS = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
+  if (type && ALLOWED_TYPES.includes(type))           query.type      = type;
+  if (riskLevel && ALLOWED_RISK_LEVELS.includes(riskLevel)) query.riskLevel = riskLevel;
   if (isRead !== undefined && isRead !== "") {
     query.isRead = isRead === "true" || isRead === true;
   }
 
-  const skip  = (page - 1) * limit;
-  const total = await Alert.countDocuments(query);
-  const alerts = await Alert
+  const pageNum  = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+  const skip     = (pageNum - 1) * limitNum;
+  const total    = await Alert.countDocuments(query);
+  const alerts   = await Alert
     .find(query)
     .sort({ timestamp: -1 })
     .skip(skip)
-    .limit(limit)
+    .limit(limitNum)
     .populate("userId", "username role");
 
-  return { alerts, total, page: Number(page), pages: Math.ceil(total / limit) };
+  return { alerts, total, page: pageNum, pages: Math.ceil(total / limitNum) };
 };
 
 /**

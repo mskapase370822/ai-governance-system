@@ -14,16 +14,15 @@ import PromptLog               from "../../models/PromptLog.js";
 import Log                     from "../../models/Log.js";
 
 const router = express.Router();
-router.use(protect, apiLimiter);
 
-// GET /api/v1/analytics/dashboard (admin)
-router.get("/dashboard", adminOnly, getDashboardStats);
+// ── GET /api/v1/analytics/dashboard (admin) ───────────────────────────────────
+router.get("/dashboard", protect, adminOnly, apiLimiter, getDashboardStats);
 
-// GET /api/v1/analytics/me
-router.get("/me", getUserStats);
+// ── GET /api/v1/analytics/me ──────────────────────────────────────────────────
+router.get("/me", protect, apiLimiter, getUserStats);
 
 // GET /api/v1/analytics/risk-score — numeric score distribution
-router.get("/risk-score", adminOnly, async (req, res, next) => {
+router.get("/risk-score", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const buckets = await PromptLog.aggregate([
       {
@@ -65,7 +64,7 @@ router.get("/risk-score", adminOnly, async (req, res, next) => {
 });
 
 // GET /api/v1/analytics/explainability/:logId — explainability for a specific log
-router.get("/explainability/:logId", adminOnly, async (req, res, next) => {
+router.get("/explainability/:logId", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const promptLog = await PromptLog.findById(req.params.logId);
     if (!promptLog) {

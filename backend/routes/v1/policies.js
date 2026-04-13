@@ -18,10 +18,9 @@ import { writeAuditLog }       from "../../services/AuditService.js";
 import { apiLimiter }          from "../../core/security/RateLimiter.js";
 
 const router = express.Router();
-router.use(protect, apiLimiter);
 
-// GET /api/v1/policies/
-router.get("/", async (req, res, next) => {
+// ── GET /api/v1/policies/ ─────────────────────────────────────────────────────
+router.get("/", protect, apiLimiter, async (req, res, next) => {
   try {
     const policies = await PolicyService.getAllPolicies();
     res.json(policies);
@@ -31,7 +30,7 @@ router.get("/", async (req, res, next) => {
 });
 
 // GET /api/v1/policies/:id
-router.get("/:id", async (req, res, next) => {
+router.get("/:id", protect, apiLimiter, async (req, res, next) => {
   try {
     const policy = await PolicyService.getPolicyById(req.params.id);
     if (!policy) return res.status(404).json({ error: "Policy not found." });
@@ -44,7 +43,9 @@ router.get("/:id", async (req, res, next) => {
 // POST /api/v1/policies/ (admin)
 router.post(
   "/",
+  protect,
   adminOnly,
+  apiLimiter,
   [
     body("name").trim().notEmpty().withMessage("Policy name is required."),
     body("type").isIn(["block_keywords", "time_restriction", "role_restriction", "rate_limit", "custom"])
@@ -63,7 +64,7 @@ router.post(
 );
 
 // PUT /api/v1/policies/:id (admin)
-router.put("/:id", adminOnly, async (req, res, next) => {
+router.put("/:id", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const policy = await PolicyService.updatePolicy(req.params.id, req.body);
     if (!policy) return res.status(404).json({ error: "Policy not found." });
@@ -75,7 +76,7 @@ router.put("/:id", adminOnly, async (req, res, next) => {
 });
 
 // PUT /api/v1/policies/:id/toggle (admin)
-router.put("/:id/toggle", adminOnly, async (req, res, next) => {
+router.put("/:id/toggle", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const policy = await PolicyService.togglePolicy(req.params.id);
     if (!policy) return res.status(404).json({ error: "Policy not found." });
@@ -87,7 +88,7 @@ router.put("/:id/toggle", adminOnly, async (req, res, next) => {
 });
 
 // DELETE /api/v1/policies/:id (admin)
-router.delete("/:id", adminOnly, async (req, res, next) => {
+router.delete("/:id", protect, adminOnly, apiLimiter, async (req, res, next) => {
   try {
     const deleted = await PolicyService.deletePolicy(req.params.id);
     if (!deleted) return res.status(404).json({ error: "Policy not found." });

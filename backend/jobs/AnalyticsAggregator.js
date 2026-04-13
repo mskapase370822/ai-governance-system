@@ -18,6 +18,9 @@ import logger    from "../config/logging.js";
 
 let task = null;
 
+/** Minimum high-risk submissions per hour to trigger a spike alert */
+const HIGH_RISK_SPIKE_THRESHOLD = 10;
+
 const aggregate = async (io) => {
   try {
     const now        = new Date();
@@ -41,8 +44,8 @@ const aggregate = async (io) => {
       avgRiskScore,
     });
 
-    // ── Spike detection: >10 HIGH-risk in last hour → emit alert ──────────
-    if (highLastHour >= 10 && io) {
+    // ── Spike detection: high-risk spike in last hour → emit alert ────────
+    if (highLastHour >= HIGH_RISK_SPIKE_THRESHOLD && io) {
       io.emit("risk_spike", {
         type:        "HIGH_RISK_SPIKE",
         count:       highLastHour,
