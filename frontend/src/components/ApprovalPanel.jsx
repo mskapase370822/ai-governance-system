@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Check, X, Clock, AlertTriangle, ChevronDown } from "lucide-react";
+import { Check, X, Clock, ChevronDown } from "lucide-react";
 import { approveRequestAPI, denyRequestAPI } from "../services/api";
-import { RiskBadge } from "./RiskBadge";
 
 export function ApprovalPanel({ approvals, onUpdate }) {
   const [reviewNotes, setReviewNotes] = useState({});
@@ -55,7 +54,6 @@ export function ApprovalPanel({ approvals, onUpdate }) {
                 <span className="badge badge-role">{req.requestedByRole}</span>
               </div>
               <div className="approval-meta">
-                <RiskBadge level={req.riskLevel} />
                 <span className="approval-time">
                   {new Date(req.createdAt).toLocaleString("en-US", {
                     month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
@@ -79,21 +77,6 @@ export function ApprovalPanel({ approvals, onUpdate }) {
                 <label className="label">Action Submitted:</label>
                 <div className="approval-action-content">{req.action}</div>
               </div>
-
-              {req.reason && (
-                <div className="approval-reason">
-                  <AlertTriangle size={14} />
-                  <span>{req.reason}</span>
-                </div>
-              )}
-
-              {req.riskDetails?.length > 0 && (
-                <ul className="risk-details-list">
-                  {req.riskDetails.map((d, i) => (
-                    <li key={i}>{d}</li>
-                  ))}
-                </ul>
-              )}
 
               <div className="approval-note-group">
                 <input
