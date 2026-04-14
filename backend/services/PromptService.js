@@ -11,7 +11,6 @@
 
 import Log           from "../models/Log.js";
 import ApprovalRequest from "../models/ApprovalRequest.js";
-import Alert          from "../models/Alert.js";
 import { validatePrompt }   from "../core/validator/PromptValidator.js";
 import { evaluatePolicies } from "../utils/policyEngine.js";
 import { computeRiskScore } from "../core/riskEngine/RiskScorer.js";
@@ -91,17 +90,7 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
   log.approvalRequestId = approvalRequest._id;
   await log.save();
 
-  // ── 6. Create Alert so submission appears in admin Alerts tab ─────────────
-  await Alert.create({
-    userId:   user._id,
-    username: user.username,
-    userRole: user.role,
-    action:   promptText.substring(0, 200),
-    type:     "approval_request",
-    relatedLogId: log._id,
-  });
-
-  // ── 7. WebSocket notification ─────────────────────────────────────────────
+  // ── 6. WebSocket notification ─────────────────────────────────────────────
   if (io) {
     io.emit("approval_request", {
       id:        approvalRequest._id,

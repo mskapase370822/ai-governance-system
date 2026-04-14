@@ -163,7 +163,6 @@ export default function AdminDashboard() {
       setToasts((prev) => [...prev, alertData]);
       setUnreadAlerts((prev) => prev + 1);
       fetchApprovals();
-      fetchAlerts();
       fetchStats();
     });
 
@@ -173,7 +172,7 @@ export default function AdminDashboard() {
     });
 
     return () => disconnectSocket();
-  }, [fetchStats, fetchApprovals, fetchLogs, fetchAlerts, fetchActivityStats]);
+  }, [fetchStats, fetchApprovals, fetchLogs, fetchActivityStats]);
 
   const dismissToast = (id) => {
     setToasts((prev) => prev.filter((a) => a.id !== id));
@@ -412,49 +411,25 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 alertHistory.map((alert, i) => {
-                  const isApprovalRequest = alert.type === "approval_request";
-                  const isRejection = alert.type === "rejection";
+                  const severityColor =
+                    alert.riskLevel === "CRITICAL" ? "#dc2626" :
+                    alert.riskLevel === "HIGH"     ? "var(--risk-high)" :
+                    alert.riskLevel === "MEDIUM"   ? "var(--risk-medium)" :
+                                                     "var(--risk-low)";
                   return (
                     <div key={alert._id || alert.id || i} className="alert-panel-item">
-                      <div className={`alert-dot ${isApprovalRequest ? "alert-dot-medium" : ["HIGH","CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
+                      <div className={`alert-dot ${["HIGH","CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
                       <div className="alert-text">
                         <strong>{alert.username || alert.user || "Unknown"}</strong>
-                        {isApprovalRequest ? (
-                          <>
-                            {" — submitted action for approval"}
-                            <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>
-                              {alert.action?.substring(0, 100)}
-                            </div>
-                          </>
-                        ) : isRejection ? (
-                          <>
-                            {" — action was rejected by admin"}
-                            <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 4 }}>
-                              {alert.action?.substring(0, 100)}
-                            </div>
-                          </>
-                        ) : (
-                          (() => {
-                            const severityColor =
-                              alert.riskLevel === "CRITICAL" ? "#dc2626" :
-                              alert.riskLevel === "HIGH"     ? "var(--risk-high)" :
-                              alert.riskLevel === "MEDIUM"   ? "var(--risk-medium)" :
-                                                               "var(--risk-low)";
-                            return (
-                              <>
-                                {" — "}
-                                <span style={{ color: severityColor, fontWeight: 600 }}>
-                                  {alert.riskLevel}
-                                </span>
-                                {" risk"}
-                                {alert.reason ? <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "0.78rem" }}>{alert.reason}</div> : ""}
-                                <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
-                                  {alert.action?.substring(0, 100)}
-                                </div>
-                              </>
-                            );
-                          })()
-                        )}
+                        {" — "}
+                        <span style={{ color: severityColor, fontWeight: 600 }}>
+                          {alert.riskLevel}
+                        </span>
+                        {" risk"}
+                        {alert.reason ? <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "0.78rem" }}>{alert.reason}</div> : ""}
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
+                          {alert.action?.substring(0, 100)}
+                        </div>
                         <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
                           {alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "Just now"}
                         </span>

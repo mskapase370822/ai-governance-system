@@ -43,19 +43,17 @@ export const submitActivity = async (req, res) => {
 
     const populated = await UserActivity.findById(activity._id).populate("userId", "username role");
 
-    // Create alert so MEDIUM/HIGH risk activities appear in the admin Alerts tab
-    if (riskLevel === "MEDIUM" || riskLevel === "HIGH") {
-      await Alert.create({
-        userId:   req.user._id,
-        username: req.user.username,
-        userRole: req.user.role,
-        action:   trimmed.substring(0, 200),
-        riskLevel,
-        reason,
-        type:     "risk_alert",
-        relatedLogId: activity._id,
-      });
-    }
+    // Create alert so this activity appears in the admin Alerts tab
+    await Alert.create({
+      userId:   req.user._id,
+      username: req.user.username,
+      userRole: req.user.role,
+      action:   trimmed.substring(0, 200),
+      riskLevel,
+      reason,
+      type:     "risk_alert",
+      relatedLogId: activity._id,
+    });
 
     // Emit real-time event for admin monitoring
     const io = req.app.get("io");
