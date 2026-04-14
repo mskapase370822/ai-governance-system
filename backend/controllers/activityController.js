@@ -1,5 +1,4 @@
 import UserActivity from "../models/UserActivity.js";
-import Alert from "../models/Alert.js";
 import { analyzeRisk } from "../utils/riskAnalyzer.js";
 import emailService from "../services/emailService.js";
 import User from "../models/User.js";
@@ -42,18 +41,6 @@ export const submitActivity = async (req, res) => {
     });
 
     const populated = await UserActivity.findById(activity._id).populate("userId", "username role");
-
-    // Create alert so this activity appears in the admin Alerts tab
-    await Alert.create({
-      userId:   req.user._id,
-      username: req.user.username,
-      userRole: req.user.role,
-      action:   trimmed.substring(0, 200),
-      riskLevel,
-      reason,
-      type:     "risk_alert",
-      relatedLogId: activity._id,
-    });
 
     // Emit real-time event for admin monitoring
     const io = req.app.get("io");
