@@ -135,7 +135,18 @@ export function ActivityForm({ onActivityCreated }) {
           </div>
 
           <div className="action-result-meta">
+            <span>Confidence: {result.riskAnalysis?.confidence != null ? `${(result.riskAnalysis.confidence * 100).toFixed(0)}%` : "—"}</span>
             <span>Status: {result.activity?.status}</span>
+          </div>
+
+          <div className="confidence-bar">
+            <div
+              className={`confidence-fill ${
+                result.riskAnalysis?.confidence > 0.7 ? "high" :
+                result.riskAnalysis?.confidence > 0.4 ? "medium" : "low"
+              }`}
+              style={{ width: `${(result.riskAnalysis?.confidence || 0) * 100}%` }}
+            />
           </div>
         </div>
       )}

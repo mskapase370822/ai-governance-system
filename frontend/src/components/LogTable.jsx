@@ -36,7 +36,7 @@ export function LogTable({ logs, isAdmin = false }) {
         </thead>
         <tbody>
           {logs.map((log) => (
-            <tr key={log._id || log.id}>
+            <tr key={log._id || log.id} className={log.isAnomaly ? "row-anomaly" : ""}>
               {isAdmin && (
                 <td className="cell-primary">
                   <div className="user-cell">
