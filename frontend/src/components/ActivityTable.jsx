@@ -92,7 +92,6 @@ export function ActivityTable({ activities = [], isAdmin = false, pagination, on
               {isAdmin && <th>User</th>}
               <th>Risk</th>
               <th>Status</th>
-              <th>Confidence</th>
               <th>Timestamp</th>
               {isAdmin && <th>Actions</th>}
             </tr>
@@ -126,9 +125,6 @@ export function ActivityTable({ activities = [], isAdmin = false, pagination, on
                   <span className={`badge ${statusColors[a.status] || "badge-medium"}`}>
                     {a.status}
                   </span>
-                </td>
-                <td style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                  {a.confidence != null ? `${(a.confidence * 100).toFixed(0)}%` : "—"}
                 </td>
                 <td style={{ fontSize: "0.78rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                   {new Date(a.timestamp).toLocaleString("en-US", {
@@ -276,7 +272,6 @@ export function ActivityTable({ activities = [], isAdmin = false, pagination, on
                   {detailModal.status}
                 </span>
               </div>
-              <div><strong>Confidence:</strong> {detailModal.confidence != null ? `${(detailModal.confidence * 100).toFixed(0)}%` : "—"}</div>
               <div><strong>Timestamp:</strong> {new Date(detailModal.timestamp).toLocaleString()}</div>
               {detailModal.reason && <div><strong>Reason:</strong> {detailModal.reason}</div>}
               <div>
