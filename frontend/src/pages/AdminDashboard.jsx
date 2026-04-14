@@ -416,7 +416,7 @@ export default function AdminDashboard() {
                   const isRejection = alert.type === "rejection";
                   return (
                     <div key={alert._id || alert.id || i} className="alert-panel-item">
-                      <div className={`alert-dot ${isApprovalRequest ? "alert-dot-medium" : ["HIGH","CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
+                      <div className={`alert-dot ${["HIGH", "CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
                       <div className="alert-text">
                         <strong>{alert.username || alert.user || "Unknown"}</strong>
                         {isApprovalRequest ? (

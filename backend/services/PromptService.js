@@ -52,6 +52,18 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
       userAgent:      meta.userAgent || "",
     });
 
+    // Create alert so blocked submissions appear in the admin Alerts tab
+    await Alert.create({
+      userId:   user._id,
+      username: user.username,
+      userRole: user.role,
+      action:   promptText.substring(0, 200),
+      riskLevel: "HIGH",
+      reason:   systemResponse,
+      type:     "risk_alert",
+      relatedLogId: log._id,
+    });
+
     const populated = await Log.findById(log._id).populate("userId", "username role");
     return {
       log: populated,
@@ -93,11 +105,13 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
 
   // ── 6. Create Alert so submission appears in admin Alerts tab ─────────────
   await Alert.create({
-    userId:   user._id,
-    username: user.username,
-    userRole: user.role,
-    action:   promptText.substring(0, 200),
-    type:     "approval_request",
+    userId:    user._id,
+    username:  user.username,
+    userRole:  user.role,
+    action:    promptText.substring(0, 200),
+    riskLevel: riskAssessment.riskLevel,
+    reason:    riskAssessment.reason,
+    type:      "approval_request",
     relatedLogId: log._id,
   });
 
