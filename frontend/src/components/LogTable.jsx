@@ -31,8 +31,6 @@ export function LogTable({ logs, isAdmin = false }) {
             <th>Action</th>
             <th>Risk</th>
             <th>Status</th>
-            <th>Confidence</th>
-            {isAdmin && <th>Anomaly</th>}
             <th>Time</th>
           </tr>
         </thead>
@@ -68,23 +66,6 @@ export function LogTable({ logs, isAdmin = false }) {
               <td>
                 <StatusBadge status={log.status} />
               </td>
-              <td>
-                {log.confidence != null
-                  ? `${(log.confidence * 100).toFixed(0)}%`
-                  : "—"}
-              </td>
-              {isAdmin && (
-                <td>
-                  {log.isAnomaly ? (
-                    <span className="anomaly-flag" title={log.anomalyReason}>
-                      <AlertTriangle size={14} />
-                      Yes
-                    </span>
-                  ) : (
-                    <span style={{ color: "var(--text-muted)" }}>—</span>
-                  )}
-                </td>
-              )}
               <td className="cell-time">
                 {log.timestamp || log.createdAt
                   ? new Date(log.timestamp || log.createdAt).toLocaleDateString("en-US", {

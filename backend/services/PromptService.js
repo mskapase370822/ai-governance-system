@@ -15,6 +15,7 @@ import Alert         from "../models/Alert.js";
 import ApprovalRequest from "../models/ApprovalRequest.js";
 import { validatePrompt }   from "../core/validator/PromptValidator.js";
 import { evaluatePolicies } from "../utils/policyEngine.js";
+import { computeRiskScore } from "../core/riskEngine/RiskScorer.js";
 
 // ── Main service method ───────────────────────────────────────────────────────
 
@@ -60,11 +61,17 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
     };
   }
 
-  // ── 3. Persist Log with pending_approval ──────────────────────────────────
+  // ── 3. Risk scoring ───────────────────────────────────────────────────────
+  const riskAssessment = computeRiskScore(promptText, { userRole: user.role });
+
+  // ── 4. Persist Log with pending_approval ──────────────────────────────────
   const log = await Log.create({
     userId:         user._id,
     action:         promptText,
-    riskLevel:      "LOW",
+    riskLevel:      riskAssessment.riskLevel,
+    reason:         riskAssessment.reason,
+    riskDetails:    riskAssessment.riskDetails,
+    category:       riskAssessment.category,
     status:         "pending_approval",
     systemResponse: "Action submitted and awaiting admin approval.",
     userRole:       user.role,
@@ -72,7 +79,7 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
     userAgent:      meta.userAgent || "",
   });
 
-  // ── 4. Create ApprovalRequest ─────────────────────────────────────────────
+  // ── 5. Create ApprovalRequest ─────────────────────────────────────────────
   const approvalRequest = await ApprovalRequest.create({
     requestedBy:         user._id,
     requestedByUsername: user.username,
@@ -85,17 +92,34 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
   log.approvalRequestId = approvalRequest._id;
   await log.save();
 
-  // ── 5. Create alert for new approval request ──────────────────────────────
+  // ── 6. Create alerts ──────────────────────────────────────────────────────
+  // Always create an approval_request alert
   await Alert.create({
     userId:   user._id,
     username: user.username,
     userRole: user.role,
     action:   promptText.substring(0, 200),
+    riskLevel: riskAssessment.riskLevel,
+    reason:   riskAssessment.reason,
     type:     "approval_request",
     relatedLogId: log._id,
   });
 
-  // ── 6. WebSocket notification ─────────────────────────────────────────────
+  // For HIGH risk actions, also create a risk_alert so it appears in the admin Alerts tab
+  if (riskAssessment.riskLevel === "HIGH") {
+    await Alert.create({
+      userId:   user._id,
+      username: user.username,
+      userRole: user.role,
+      action:   promptText.substring(0, 200),
+      riskLevel: "HIGH",
+      reason:   riskAssessment.reason,
+      type:     "risk_alert",
+      relatedLogId: log._id,
+    });
+  }
+
+  // ── 7. WebSocket notification ─────────────────────────────────────────────
   if (io) {
     io.emit("approval_request", {
       id:        approvalRequest._id,
