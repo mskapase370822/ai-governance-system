@@ -6,12 +6,10 @@
  *   2. Evaluate policies (hard blocks)
  *   3. Persist to Log with status = "pending_approval"
  *   4. Create ApprovalRequest
- *   5. Create alert for new approval request
- *   6. Notify via WebSocket
+ *   5. Notify via WebSocket
  */
 
 import Log           from "../models/Log.js";
-import Alert         from "../models/Alert.js";
 import ApprovalRequest from "../models/ApprovalRequest.js";
 import { validatePrompt }   from "../core/validator/PromptValidator.js";
 import { evaluatePolicies } from "../utils/policyEngine.js";
@@ -92,34 +90,7 @@ export const processPrompt = async ({ rawPrompt, user, meta = {}, io = null }) =
   log.approvalRequestId = approvalRequest._id;
   await log.save();
 
-  // ── 6. Create alerts ──────────────────────────────────────────────────────
-  // Always create an approval_request alert
-  await Alert.create({
-    userId:   user._id,
-    username: user.username,
-    userRole: user.role,
-    action:   promptText.substring(0, 200),
-    riskLevel: riskAssessment.riskLevel,
-    reason:   riskAssessment.reason,
-    type:     "approval_request",
-    relatedLogId: log._id,
-  });
-
-  // For HIGH risk actions, also create a risk_alert so it appears in the admin Alerts tab
-  if (riskAssessment.riskLevel === "HIGH") {
-    await Alert.create({
-      userId:   user._id,
-      username: user.username,
-      userRole: user.role,
-      action:   promptText.substring(0, 200),
-      riskLevel: "HIGH",
-      reason:   riskAssessment.reason,
-      type:     "risk_alert",
-      relatedLogId: log._id,
-    });
-  }
-
-  // ── 7. WebSocket notification ─────────────────────────────────────────────
+  // ── 6. WebSocket notification ─────────────────────────────────────────────
   if (io) {
     io.emit("approval_request", {
       id:        approvalRequest._id,
