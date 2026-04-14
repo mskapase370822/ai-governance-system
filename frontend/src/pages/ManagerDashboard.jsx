@@ -124,10 +124,15 @@ export default function ManagerDashboard() {
             <div className="alert-panel" style={{ maxHeight: 250 }}>
               {alertHistory.slice(0, 10).map((alert, i) => (
                 <div key={alert._id || i} className="alert-panel-item">
-                  <div className="alert-dot" />
+                  <div className={`alert-dot ${["HIGH", "CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
                   <div className="alert-text">
-                    <strong>{alert.username || alert.user || "Unknown"}</strong> — {alert.riskLevel} risk
+                    <strong>{alert.username || alert.user || "Unknown"}</strong>
+                    {alert.type === "approval_request"
+                      ? <> — submitted action for approval{alert.riskLevel && <span style={{ marginLeft: 4, fontWeight: 600 }}>({alert.riskLevel} risk)</span>}</>
+                      : <> — {alert.riskLevel || "unknown"} risk</>
+                    }
                     {alert.reason && <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 2 }}>{alert.reason}</div>}
+                    {alert.action && <div style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginTop: 2 }}>{alert.action.substring(0, 100)}</div>}
                     <span style={{ color: "var(--text-muted)", fontSize: "0.72rem" }}>
                       {alert.timestamp ? new Date(alert.timestamp).toLocaleString() : "Just now"}
                     </span>
