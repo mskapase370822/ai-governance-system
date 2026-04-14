@@ -12,7 +12,6 @@ class ReportService {
       "Risk Level",
       "Status",
       "Date",
-      "Confidence",
       "Reason",
     ].join(",");
 
@@ -30,7 +29,6 @@ class ReportService {
         escape(a.riskLevel || ""),
         escape(a.status || ""),
         escape(a.timestamp ? new Date(a.timestamp).toISOString() : ""),
-        escape(a.confidence != null ? `${Math.round(a.confidence * 100)}%` : ""),
         escape(a.reason || ""),
       ].join(",");
     });
