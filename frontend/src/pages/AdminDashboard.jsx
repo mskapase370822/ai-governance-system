@@ -417,7 +417,7 @@ export default function AdminDashboard() {
                     alert.riskLevel === "MEDIUM"   ? "var(--risk-medium)" :
                                                      "var(--risk-low)";
                   return (
-                    <div key={alert._id || alert.id || i} className="alert-panel-item">
+                    <div key={alert._id || alert.id || i} className={`alert-panel-item ${alert.isAnomaly ? "alert-anomaly" : ""}`}>
                       <div className={`alert-dot ${["HIGH","CRITICAL"].includes(alert.riskLevel) ? "" : "alert-dot-medium"}`} />
                       <div className="alert-text">
                         <strong>{alert.username || alert.user || "Unknown"}</strong>
@@ -426,6 +426,7 @@ export default function AdminDashboard() {
                           {alert.riskLevel}
                         </span>
                         {" risk"}
+                        {alert.isAnomaly && <span className="anomaly-flag" style={{ marginLeft: 8 }}><Zap size={12} /> Anomaly</span>}
                         {alert.reason ? <div style={{ marginTop: 4, color: "var(--text-muted)", fontSize: "0.78rem" }}>{alert.reason}</div> : ""}
                         <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", marginTop: 2 }}>
                           {alert.action?.substring(0, 100)}

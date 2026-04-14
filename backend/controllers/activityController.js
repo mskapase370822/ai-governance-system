@@ -23,8 +23,8 @@ export const submitActivity = async (req, res) => {
       return res.status(400).json({ error: "Input text must not exceed 1000 characters." });
     }
 
-    // Analyze risk via rule-based engine
-    const { riskLevel, reason } = await analyzeRisk(trimmed);
+    // Analyze risk via ML service (with rule-based fallback)
+    const { riskLevel, confidence, reason } = await analyzeRisk(trimmed);
 
     // Automatically block HIGH-risk submissions
     const isBlocked = riskLevel === "HIGH";
@@ -34,6 +34,7 @@ export const submitActivity = async (req, res) => {
       userId: req.user._id,
       inputText: trimmed,
       riskLevel,
+      confidence,
       reason,
       aiAnalysis: reason,
       isBlocked,
@@ -49,6 +50,7 @@ export const submitActivity = async (req, res) => {
         id: activity._id,
         user: req.user.username,
         riskLevel,
+        confidence,
         reason,
         status,
         timestamp: activity.timestamp,
@@ -67,7 +69,7 @@ export const submitActivity = async (req, res) => {
           await emailService.sendHighRiskAlert(adminEmails, {
             username: req.user.username,
             inputText: trimmed,
-          }, { reason });
+          }, { confidence, reason });
         }
       } catch (emailErr) {
         console.error("Failed to send high-risk email alert:", emailErr.message);
@@ -76,7 +78,7 @@ export const submitActivity = async (req, res) => {
 
     res.status(201).json({
       activity: populated,
-      riskAnalysis: { riskLevel, reason },
+      riskAnalysis: { riskLevel, confidence, reason },
     });
   } catch (err) {
     console.error("submitActivity error:", err);

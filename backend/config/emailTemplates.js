@@ -19,7 +19,7 @@ export const highRiskTemplate = (activityData, riskDetails) => `
     .value { font-size: 15px; color: #111827; font-weight: 500; }
     .activity-text { background: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 16px; border-radius: 4px; font-size: 14px; color: #7f1d1d; margin-top: 4px; }
     .score-bar { background: #fee2e2; border-radius: 4px; height: 8px; margin-top: 6px; }
-    .score-fill { background: #dc2626; height: 8px; border-radius: 4px; width: 100%; }
+    .score-fill { background: #dc2626; height: 8px; border-radius: 4px; width: ${Math.round((riskDetails.confidence || 0.8) * 100)}%; }
     .footer { background: #f9fafb; padding: 16px 24px; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
     .btn { display: inline-block; background: #dc2626; color: #fff; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 600; margin-top: 16px; }
   </style>
@@ -40,8 +40,9 @@ export const highRiskTemplate = (activityData, riskDetails) => `
         <div class="activity-text">${activityData.inputText || ""}</div>
       </div>
       <div class="field">
-        <div class="label">Risk Level</div>
-        <div class="value">🔴 HIGH</div>
+        <div class="label">Risk Score</div>
+        <div class="value">${Math.round((riskDetails.confidence || 0.8) * 100)}%</div>
+        <div class="score-bar"><div class="score-fill"></div></div>
       </div>
       <div class="field">
         <div class="label">Risk Reason</div>

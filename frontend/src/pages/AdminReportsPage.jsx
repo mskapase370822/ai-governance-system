@@ -75,7 +75,7 @@ export default function AdminReportsPage() {
             </div>
             <div style={{ marginTop: 10, fontSize: 12, color: "var(--text-muted)" }}>
               {format === "csv"
-                ? "All fields included: username, activity, risk level, status, timestamp, reason."
+                ? "All fields included: username, activity, risk level, status, timestamp, confidence, reason."
                 : "Formatted PDF with summary statistics and a table of the top 50 activities."}
             </div>
           </div>
